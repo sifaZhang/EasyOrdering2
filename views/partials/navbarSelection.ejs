@@ -1,0 +1,8 @@
+
+        <% if (s_role === 'Administrator') { %>
+            <%- include('navbarAdmin.ejs') %>
+        <% } else if (s_role === 'Receptionist') { %>
+            <%- include('navbarRecep.ejs') %>
+        <% } else { %>
+            <%- include('navbarGuest.ejs') %>
+        <% } %>

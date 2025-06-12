@@ -53,3 +53,13 @@
 .form-control::placeholder {
   color: #aaa;
 }
+
+.userinfo-div {
+  margin-top: 20px; 
+  align-items: center;
+}
+
+.userinfo-div label.form-label {
+    width: 150px; /* 或你需要的固定宽度 */
+    text-align: right;
+}
