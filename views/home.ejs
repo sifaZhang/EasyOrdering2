@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/header.ejs') %>
+        <title>EasyOrdering</title>
+</head>
+
+<body>
+       <% if (session.loggedin) { %>
+        <% if (session.role === 'Administrator') { %>
+            <%- include('partials/navbarAdmin.ejs') %>
+        <% } else if (session.role === 'Receptionist') { %>
+            <%- include('partials/navbarRecep.ejs') %>
+        <% } else { %>
+            <%- include('partials/navbarGuest.ejs') %>
+            console.log("Don't hvae the role", session.role);
+        <% } %>
+    <% } else { %>
+        <%- include('partials/navbarGuest.ejs') %>
+    <% } %>
+    
+        <div class="container">
+            <h1 class="h1-top">Top 6 most ordered items</h1>
+            <h4>Main</h4>
+
+        </div>
+
+        <div class="footer">
+            <%- include('partials/footer.ejs') %>
+        </div>
+
+</body>
+</html>
+
+

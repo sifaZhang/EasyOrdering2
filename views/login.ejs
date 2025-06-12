@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/header.ejs') %>
+        <title>Login</title>
+</head>
+<body>
+    <%- include('partials/navbarGuest.ejs') %>
+
+        <div style="height: 60vh; display: flex; align-items: center; justify-content: center;">
+            <div class="login-card">
+                <h3 class="text-center mb-4">Welcome Back</h3>
+        
+                <form action="/auth" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input name="username" type="text" class="form-control" placeholder="Enter username" required />
+                        </div>
+                    </div>
+        
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input name="password" type="password" class="form-control" placeholder="Enter password" required />
+                        </div>
+                    </div>
+        
+                    <div class="d-grid mb-3">
+                        <button class="btn btn-primary" type="submit">Login</button>
+                    </div>
+                </form>
+
+                <div class="text-center">
+                    <small>Forget your account? <a href="/Reset">Reset Password</a></small>
+                </div>
+        
+            </div>
+        </div>
+
+         <div class="footer">
+            <%- include('partials/footer.ejs') %>
+        </div>
+</body>
+</html>
+

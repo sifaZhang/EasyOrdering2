@@ -1,0 +1,55 @@
+.custom-navbar {
+  height: 250px;
+  background-image: url('/public/images/Title.jpg');
+  background-size: cover;         /* 自动缩放填充整个区域 */
+  background-position: center;    /* 图片居中显示 */
+  background-repeat: no-repeat;   /* 不重复平铺 */
+}
+
+.page-title {
+  text-align:left; 
+  color:white; 
+  font-weight: bold;      /* 可选：加粗字体 */
+  margin-left: 5px;
+  margin-bottom: 0;
+}
+.nav-menu {
+  text-align: left;
+  margin-left: 10px;
+  margin-top: 50px;
+  color: white;
+  font-size: medium;
+  font-weight: bold;
+  transition: 0.3s;
+  background-color: rgba(0, 0, 0, 0.5);   /* 黑色+50%透明 */
+}
+
+.nav-link.nav-menu:hover {
+  color: #ffcc00;           /* 改变字体颜色 */
+  background-color: #333;   /* 可选：改变背景颜色 */
+  text-decoration: underline; /* 可选：添加下划线 */
+}
+
+.nav-div {
+  background-color: rgba(0, 0, 0, 0.5);   /* 黑色+50%透明 */
+  margin-top: 50px;
+}
+
+.h1-top {
+  text-align: center;
+  margin-top: 30px;
+  margin-bottom: 30px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.form-control::placeholder {
+  color: #aaa;
+}
