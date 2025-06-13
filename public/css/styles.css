@@ -63,3 +63,8 @@
     width: 150px; /* 或你需要的固定宽度 */
     text-align: right;
 }
+
+.userinfo-div label.form-label-err {
+    width: 400px; /* 或你需要的固定宽度 */
+    text-align: left; 
+}

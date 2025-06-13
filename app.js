@@ -88,9 +88,9 @@ app.get('/logout',(req,res) => {
 
 
 //This will be used to update account information.
-app.post('/updateAccountInfo', function(req, res) {
-	let username = req.body.username
-    let userId = req.body.userid
+app.post('/updateAccountInfo', function (req, res) {
+    const username = req.body.username
+    const  userId = +req.body.userId
 
     if (req.body.password === req.body.repassword) {
         if (username) {
@@ -98,19 +98,25 @@ app.post('/updateAccountInfo', function(req, res) {
                 function (error, results, fields) {
                     if (error) throw error;
                     if (results.length > 0 && userId != results[0].id) {
-                        console.log("Username:", username, " has existed.");
-                        document.getElementById('err_username').setCustomValidity('username has existed!');
+                        console.log("Username:", username, " has existed.", userId);
+                        res.send('Username has existed!');
                     } else {
-                        
+                        conn.query('update users set username = ?, firstname = ?, lastname = ?, password = ?, email = ?, phone = ? WHERE id = ?',
+                             [req.body.username, req.body.firstname, req.body.lastname, req.body.password, req.body.email, req.body.phone, userId],
+                            function (error, results, fields) {
+                                if (error) throw error;
+                                console.log("Update user:", username);
+                                res.send('Your information has updated!');
+                            });
                     }
-                    
                 });
         } else {
-            document.getElementById('err_username').setCustomValidity('Please enter Username and Password!');
+            //username has check in client side
+            console.log('Do not have username!');
         }
     } else {
+        //password has check in client side
         console.log('Password and Re-entered Password do not match!');
-        document.getElementById('err_rePassword').setCustomValidity('Password and Re-entered Password do not match!');
     }
 });
 
@@ -127,8 +133,8 @@ app.post('/reset', function(req, res) {
                 const transporter = nodemailer.createTransport({
                     service: 'gmail',
                     auth: {
-                        user: 'easyerordering@gmail.com',
-                        pass: 'vlpn loik ktbz ytiu'
+                        user: GMAIL_USER,
+                        pass: GMAIL_APP_PASSWORD
                     }
                 });
 
@@ -136,7 +142,7 @@ app.post('/reset', function(req, res) {
                     'Password: ' + results[0].password + '\n' +
                     'Please change your password after logging in.';
                 const mailOptions = {
-                    from: 'easyerordering@gmail.com',
+                    from: GMAIL_USER,
                     to: email,
                     subject: 'Reset Password',
                     text: emailcontent
