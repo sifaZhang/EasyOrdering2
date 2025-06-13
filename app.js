@@ -50,6 +50,28 @@ app.get('/resetpwd', function (req, res) {
     res.render('resetpwd');
 });
 
+app.get('/allAccounts', function (req, res) {
+    conn.query('SELECT * FROM usersinfo', function (error, results) {
+        if (error) {
+            return res.status(500).send('Database error (usersinfo)');
+        }
+
+        conn.query('SELECT * FROM user_type', function (error2, results2) {
+            if (error2) {
+                return res.status(500).send('Database error (user_type)');
+            }
+
+            res.render('allAccounts', {
+                users: results,
+                usertypes: results2,
+                addSuccess: req.query.addSuccess,
+                deleteSuccess: req.query.deleteSuccess
+            });
+        });
+    });
+});
+
+
 app.get('/updateAccount', function (req, res) {
     if (res.locals.s_username) {
         conn.query('SELECT * FROM users WHERE username = ?', [res.locals.s_username],
@@ -67,7 +89,8 @@ app.get('/updateAccount', function (req, res) {
                         firstname: user.firstname,
                         lastname: user.lastname,
                         phone: user.phone,
-                        email: user.email
+                        email: user.email,
+                        success: req.query.success
                     });
                 }
             });
@@ -85,7 +108,36 @@ app.get('/logout',(req,res) => {
 	res.redirect('/');
 });
 
+app.post('/deleteUser', function (req, res) {
+    const id = parseInt(req.body.id);
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid user ID');
+    }
 
+    conn.query('DELETE FROM users WHERE id = ?', [id], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        }
+
+        res.redirect('/allAccounts?deleteSuccess=1');
+    });
+});
+
+app.post('/addUser', (req, res) => {
+    const { username, password, firstname, lastname, phone, email } = req.body;
+    const creator = res.locals.s_username || 'admin'; // Default to 'admin' if not logged in
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+    const userType = 1; // Default user type
+    const sql = 'INSERT INTO users (username, password, firstname, lastname, phone, email, usertype, creator, createtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    conn.query(sql, [username, password, firstname, lastname, phone, email, userType, creator, createTime], (err, result) => {
+        if (err) {
+            res.status(500).send('add user failed: ' + err.message);
+        } else {
+            res.redirect('/allAccounts?addSuccess=1');
+        }
+    });
+});
 
 //This will be used to update account information.
 app.post('/updateAccountInfo', function (req, res) {
@@ -106,7 +158,7 @@ app.post('/updateAccountInfo', function (req, res) {
                             function (error, results, fields) {
                                 if (error) throw error;
                                 console.log("Update user:", username);
-                                res.send('Your information has updated!');
+                                res.redirect('/updateAccount?success=1');
                             });
                     }
                 });
@@ -184,8 +236,8 @@ app.post('/auth', function(req, res) {
 				req.session.loggedin = true;
 				req.session.password = results[0].password;
                 req.session.username = results[0].username;
-                req.session.role = results[0].role;
-				console.log("User name:",results[0].username, "User role:",results[0].role);
+                req.session.role = results[0].type;
+				console.log("User name:",results[0].username, "User role:",results[0].type);
 				
                 res.redirect('/');
 			} else {

@@ -14,7 +14,7 @@
     <div style="display: flex; align-items: center; justify-content: center;">
         <form action="/updateAccountInfo" method="POST">
             <div class="d-flex userinfo-div">
-                <label class="form-label me-3">Username</label>
+                <label class="form-label me-3">User name</label>
                 <input name="username" type="text" class="form-control me-3" value="<%= username %>" required />
                 <label id="err_username" class="form-label-err text-danger"></label>
             </div>
@@ -32,13 +32,13 @@
             </div>
     
             <div class="d-flex userinfo-div">
-                <label class="form-label me-3">Firstname</label>
+                <label class="form-label me-3">First name</label>
                 <input name="firstname" type="text" class="form-control me-3" value="<%= firstname %>" required />
                 <label id="err_firstname" class="form-label-err text-danger"></label>
             </div>
     
             <div class="d-flex userinfo-div">
-                <label class="form-label me-3">Lastname</label>
+                <label class="form-label me-3">Last name</label>
                 <input name="lastname" type="text" class="form-control me-3" value="<%= lastname %>" required />
                 <label id="err_lastname" class="form-label-err text-danger"></label>
             </div>
@@ -63,6 +63,12 @@
             </div>
         </form>
     </div>
+
+        <% if (success === '1') { %>
+            <div class="alert alert-success" style="text-align: center;">Update success!</div>
+        <% } else if (success === '0') { %>
+            <div class="alert alert-danger">Update fail, please retry!</div>
+        <% } %>
     
     <div class="footer">
         <%- include('partials/footer.ejs') %>

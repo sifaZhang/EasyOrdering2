@@ -55,16 +55,16 @@
 }
 
 .userinfo-div {
-  margin-top: 20px; 
+  margin-top: 10px; 
   align-items: center;
 }
 
 .userinfo-div label.form-label {
-    width: 150px; /* 或你需要的固定宽度 */
+    width: 180px; /* 或你需要的固定宽度 */
     text-align: right;
 }
 
 .userinfo-div label.form-label-err {
-    width: 400px; /* 或你需要的固定宽度 */
+    min-width: 100px; /* 或你需要的固定宽度 */
     text-align: left; 
 }
