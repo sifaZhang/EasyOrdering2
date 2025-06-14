@@ -13,7 +13,7 @@
                 Welcome, <strong style="color:crimson ;"> <%= s_username %> </strong>
             </div>
 
-            <a class="nav-menu" href="/logout">Logout</a>
+            <a class="nav-link nav-menu" href="/logout">Logout</a>
         </div>
     </div>
 
@@ -24,8 +24,13 @@
                 <li class="nav-item">
                     <a class="nav-link nav-menu" href="/">Home</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link nav-menu" href="/menu">Menu</a>
+                <li class="nav-item dropdown">
+                    <a class="nav-link nav-menu no-caret" href="#" id="menuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Menu</a>
+                    <ul class="dropdown-menu custom-dropdown" aria-labelledby="menuDropdown">
+                        <li><a class="dropdown-item" href="/overviewMenu">Overview</a></li>
+                        <li><a class="dropdown-item" href="/customizeFoodtype">Food Type</a></li>
+                        <li><a class="dropdown-item" href="/customizeMenu">Menu</a></li>
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link nav-menu" href="/allAccounts">Accounts</a>

@@ -68,3 +68,48 @@
     min-width: 100px; /* 或你需要的固定宽度 */
     text-align: left; 
 }
+
+/* 去掉 Bootstrap 默认小箭头 */
+.no-caret::after {
+    display: none !important;
+}
+
+/* 保持 nav-menu 在 hover 时仍是白色 */
+.navbar .nav-link.nav-menu {
+    color: white !important;
+}
+
+.navbar .nav-link.nav-menu:hover {
+    color: #ffc107 !important;  /* 亮黄色，可改成你想要的颜色 */
+}
+
+/* 自定义下拉菜单外观 */
+.custom-dropdown {
+    border-radius: 8px;
+    padding: 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    min-width: 180px;
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.custom-dropdown .dropdown-item {
+  padding: 10px 16px;
+  transition: background-color 0.5s ease;
+  font-size: small;
+  font-weight: bold;
+  font-family: 'Arial', sans-serif; 
+}
+
+.custom-dropdown .dropdown-item:hover {
+  background-color: #75a9dd;
+  color: #000;
+  font-size: small;
+  font-weight: bold;
+  transition: 0.5s;
+  font-family: 'Arial', sans-serif; 
+}
+
+.footer {
+  padding-top: 20px;
+}

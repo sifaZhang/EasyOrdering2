@@ -51,9 +51,9 @@ app.get('/resetpwd', function (req, res) {
 });
 
 app.get('/allAccounts', function (req, res) {
-    conn.query('SELECT * FROM usersinfo', function (error, results) {
+    conn.query('SELECT * FROM users_info', function (error, results) {
         if (error) {
-            return res.status(500).send('Database error (usersinfo)');
+            return res.status(500).send('Database error (users_info)');
         }
 
         conn.query('SELECT * FROM user_type', function (error2, results2) {
@@ -64,6 +64,55 @@ app.get('/allAccounts', function (req, res) {
             res.render('allAccounts', {
                 users: results,
                 usertypes: results2,
+                addSuccess: req.query.addSuccess,
+                deleteSuccess: req.query.deleteSuccess
+            });
+        });
+    });
+});
+
+
+app.get('/customizeFoodtype', function (req, res) {
+    conn.query('SELECT * FROM food_type', function (error, results) {
+        if (error) {
+            return res.status(500).send('Database error (food_type)');
+        }
+
+        res.render('customizeFoodtype', {
+            foodtypes: results,
+            addSuccess: req.query.addSuccess,
+            updateSuccess: req.query.updateSuccess,
+            deleteSuccess: req.query.deleteSuccess
+        });
+    });
+});
+
+app.get('/overviewMenu', function (req, res) {
+    conn.query('SELECT * FROM menu_info', function (error, results) {
+        if (error) {
+            return res.status(500).send('Database error (menu_info)');
+        }
+
+        res.render('overviewMenu', {
+            menu: results
+        });
+    });
+});
+
+app.get('/customizeMenu', function (req, res) {
+    conn.query('SELECT * FROM menu_info', function (error, results) {
+        if (error) {
+            return res.status(500).send('Database error (menu_info)');
+        }
+
+        conn.query('SELECT * FROM food_type', function (error2, results2) {
+            if (error2) {
+                return res.status(500).send('Database error (food_type)');
+            }
+
+            res.render('allAccounts', {
+                menu: results,
+                foodtypes: results2,
                 addSuccess: req.query.addSuccess,
                 deleteSuccess: req.query.deleteSuccess
             });
@@ -107,6 +156,56 @@ app.get('/logout',(req,res) => {
     res.locals.s_role = null;
 	res.redirect('/');
 });
+
+app.post('/updateFoodtype', function (req, res) {
+    const id = parseInt(req.body.id);
+    const available = req.body.available === '1' ? false : true; // Convert to boolean
+    
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid user ID');
+    }
+
+    conn.query('update food_type set available = ? WHERE id = ?', [available,id], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        }
+
+        res.redirect('/customizeFoodtype?updateSuccess=1');
+    });
+});
+
+app.post('/deleteFoodtype', function (req, res) {
+    const id = parseInt(req.body.id);
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid user ID');
+    }
+
+    conn.query('DELETE FROM food_type WHERE id = ?', [id], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        }
+
+        res.redirect('/customizeFoodtype?deleteSuccess=1');
+    });
+});
+
+app.post('/addFoodtype', (req, res) => {
+    const foodTypeName = req.body.foodTypeName;
+    const creator = res.locals.s_username || 'admin'; // Default to 'admin' if not logged in
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+
+    const sql = 'INSERT INTO food_type (name, creator, createtime, available) VALUES (?, ?, ?, ?)';
+    conn.query(sql, [foodTypeName, creator, createTime, true], (err, result) => {
+        if (err) {
+            res.status(500).send('add Foodtype failed: ' + err.message);
+        } else {
+            res.redirect('/customizeFoodtype?addSuccess=1');
+        }
+    });
+});
+
 
 app.post('/deleteUser', function (req, res) {
     const id = parseInt(req.body.id);
@@ -228,7 +327,7 @@ app.post('/auth', function(req, res) {
 	let username = req.body.username
     let password = req.body.password
     if (username && password) {
-		conn.query('SELECT * FROM usersInfo WHERE username = ? AND password = ?',
+		conn.query('SELECT * FROM users_info WHERE username = ? AND password = ?',
              [username, password], 
 		function(error, results, fields) {
 			if (error) throw error;
