@@ -99,23 +99,34 @@ app.get('/overviewMenu', function (req, res) {
     });
 });
 
-app.get('/customizeMenu', function (req, res) {
-    conn.query('SELECT * FROM menu_info', function (error, results) {
-        if (error) {
-            return res.status(500).send('Database error (menu_info)');
+// GET /menuItems?categoryId=123
+app.get('/menuItems', function (req, res) {
+    const categoryId = parseInt(req.query.categoryId);
+
+    if (isNaN(categoryId)) {
+        return res.status(400).json({ error: 'Invalid categoryId' });
+    }
+
+    const query = 'SELECT * FROM menu_info WHERE foodtype = ?';
+
+    conn.query(query, [categoryId], function (err, results) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Database error' });
         }
 
-        conn.query('SELECT * FROM food_type', function (error2, results2) {
-            if (error2) {
-                return res.status(500).send('Database error (food_type)');
-            }
+        res.json(results); // 返回JSON格式给前端
+    });
+});
 
-            res.render('allAccounts', {
-                menu: results,
-                foodtypes: results2,
-                addSuccess: req.query.addSuccess,
-                deleteSuccess: req.query.deleteSuccess
-            });
+app.get('/customizeMenu', function (req, res) {
+    conn.query('SELECT * FROM food_type  where available = 1', function (error, results) {
+        if (error) {
+            return res.status(500).send('Database error (food_type)');
+        }
+
+        res.render('customizeMenu', {
+            foodtypes: results
         });
     });
 });

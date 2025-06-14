@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/header.ejs') %>
+        <title>Customize Menu</title>
+</head>
+<body>
+    <%- include('partials/navbarSelection.ejs') %>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 左侧分类改进：用Card + List group -->
+            <div class="col-md-3 border-end p-3">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white">Menu Categories</div>
+                    <ul class="list-group list-group-flush" id="categoryList">
+                        <% foodtypes.forEach(function(category, index) { %>
+                            <li class="list-group-item category-btn <%= index === 0 ? 'active' : '' %>"
+                                data-category-id="<%= category.id %>" style="cursor: pointer;">
+                                <%= category.name %>
+                            </li>
+                            <% }); %>
+                    </ul>
+                </div>
+            </div>
+    
+            <!-- 右侧菜单项 -->
+            <div class="col-md-9 p-3">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <span>Menu Items</span>
+                        <button class="btn btn-light btn-sm" onclick="showAddMenuItemForm()">+ Add New Item</button>
+                    </div>
+                    <div class="card-body" id="menuItemsContainer">
+                        <p class="text-muted">Please select one category!</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 模态框用于放大图片 -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <img id="modalImage" src="" class="img-fluid" />
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const categoryId = btn.dataset.categoryId;
+
+                fetch(`/menuItems?categoryId=${categoryId}`)
+                    .then(res => res.json())
+                    .then(menuItems => {
+                        const container = document.getElementById('menuItemsContainer');
+
+                        // 用 JS 构建表格行
+                        const rows = menuItems.map(item => `
+                        <tr>
+                            <td><img src="${item.image_url}" class="img-thumbnail zoomable" style="width: 80px; cursor: pointer;" /></td>
+                            <td>${item.name}</td>
+                            <td>$${parseFloat(item.price).toFixed(2)}</td>
+                            <td>${item.description}</td>
+                            <td>${item.discount}</td>
+                            <td>${item.available === 1? 'Yes' : 'No'}</td>
+                            <td>${item.creator}</td>
+                            <td>${item.createtime}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning">Edit</button>
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                        // 插入整张表格
+                        container.innerHTML = `
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Name</th>
+                                    <th>Price</th>
+                                    <th>Description</th>
+                                    <th>Discount</th>
+                                    <th>Available</th>
+                                    <th>Creator</th>
+                                    <th>Create Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows}
+                            </tbody>
+                        </table>
+                    `;
+
+                        // 放大图片事件绑定（必须在插入后绑定）
+                        document.querySelectorAll('.zoomable').forEach(img => {
+                            img.addEventListener('click', () => {
+                                const modalImg = document.getElementById('modalImage');
+                                modalImg.src = img.src;
+                                const myModal = new bootstrap.Modal(document.getElementById('imageModal'));
+                                myModal.show();
+                            });
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Error fetching menu items:', err);
+                    });
+            });
+        });
+    </script>
+
+</body>
+</html>
+
+

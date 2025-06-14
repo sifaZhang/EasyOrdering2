@@ -102,8 +102,8 @@
 }
 
 .custom-dropdown .dropdown-item:hover {
-  background-color: #75a9dd;
-  color: #000;
+  background-color: #0d6efd;
+  color: white;
   font-size: small;
   font-weight: bold;
   transition: 0.5s;
@@ -112,4 +112,9 @@
 
 .footer {
   padding-top: 20px;
+}
+
+.category-btn.active {
+  background-color: #0d6efd;
+  color: white;
 }
