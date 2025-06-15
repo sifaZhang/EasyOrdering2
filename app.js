@@ -16,6 +16,23 @@ app.set('view engine','ejs');
 //This line sets mail server
 const nodemailer = require('nodemailer');
 
+// This line sets the environment variables 
+const multer = require('multer');
+const path = require('path');
+
+// 设置存储配置
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'public/images/uploads/'); 
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
+
 //This will set up the express application to include the session middleware.
 app.use(session({
 	secret: 'yoursecret',
@@ -36,6 +53,7 @@ app.use(express.urlencoded({extended: true}));
 
 //This line will check for any request with a URL path starting with '/public'.
 app.use('/public', express.static('public'));
+app.use('/uploads', express.static(__dirname + '/public/images/uploads'));
 
 
 app.get('/', function (req, res) {
@@ -73,7 +91,7 @@ app.get('/allAccounts', function (req, res) {
 
 
 app.get('/customizeFoodtype', function (req, res) {
-    conn.query('SELECT * FROM food_type', function (error, results) {
+    conn.query('SELECT * FROM food_type order by showorder ASC', function (error, results) {
         if (error) {
             return res.status(500).send('Database error (food_type)');
         }
@@ -120,13 +138,19 @@ app.get('/menuItems', function (req, res) {
 });
 
 app.get('/customizeMenu', function (req, res) {
-    conn.query('SELECT * FROM food_type  where available = 1', function (error, results) {
+    conn.query('SELECT * FROM food_type  where available = 1 order by showOrder ASC', function (error, results) {
         if (error) {
             return res.status(500).send('Database error (food_type)');
         }
 
+        let foodTypeId = null;
+        if (results.length > 0) {
+            foodTypeId = req.query.foodTypeId ? parseInt(req.query.foodTypeId) : results[0].id;
+        }
+
         res.render('customizeMenu', {
-            foodtypes: results
+            foodtypes: results,
+            foodTypeId: foodTypeId
         });
     });
 });
@@ -168,15 +192,89 @@ app.get('/logout',(req,res) => {
 	res.redirect('/');
 });
 
+app.post('/upFoodtype', function (req, res) {
+    const id = parseInt(req.body.id);
+    const showOrder = parseInt(req.body.showOrder);
+    const creator = res.locals.s_username || 'admin'; // Default to 'admin' if not logged in
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+    
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid user ID');
+    }
+    if (isNaN(showOrder)) {
+        return res.status(400).send('Invalid showOrder');
+    }
+
+    conn.query('SELECT * FROM food_type WHERE showOrder < ? order by showOrder DESC', [showOrder], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        } else if (result.length > 0) {
+            upShowOrder = result[0].showOrder;
+            upId = result[0].id;
+
+            conn.query('UPDATE food_type SET creator = ?, createtime = ?, showOrder = CASE WHEN id = ? THEN ? WHEN id = ? THEN ? ELSE showOrder END WHERE id IN (?, ?)',
+                 [creator, createTime, id, upShowOrder, upId, showOrder, id, upId], function (err1, result1) {
+                if (err1) {
+                    console.error(err1);
+                    return res.status(500).send('Database error');
+                }
+
+                res.redirect('/customizeFoodtype?updateSuccess=1');
+            });
+        } else {
+            res.redirect('/customizeFoodtype');
+        }
+    });
+});
+
+app.post('/downFoodtype', function (req, res) {
+    const id = parseInt(req.body.id);
+    const showOrder = parseInt(req.body.showOrder);
+    const creator = res.locals.s_username;
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+    
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid user ID');
+    }
+    if (isNaN(showOrder)) {
+        return res.status(400).send('Invalid showOrder');
+    }
+
+    conn.query('SELECT * FROM food_type WHERE showOrder > ? order by showOrder ASC', [showOrder], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        } else if (result.length > 0) {
+            downShowOrder = result[0].showOrder;
+            downId = result[0].id;
+
+            conn.query('UPDATE food_type SET creator = ?, createtime = ?, showOrder = CASE WHEN id = ? THEN ? WHEN id = ? THEN ? ELSE showOrder END WHERE id IN (?, ?)',
+                 [creator, createTime, id, downShowOrder, downId, showOrder, id, downId], function (err1, result1) {
+                if (err1) {
+                    console.error(err1);
+                    return res.status(500).send('Database error');
+                }
+
+                res.redirect('/customizeFoodtype?updateSuccess=1');
+            });
+        }else {
+            res.redirect('/customizeFoodtype');
+        }
+    });
+});
+
 app.post('/updateFoodtype', function (req, res) {
     const id = parseInt(req.body.id);
     const available = req.body.available === '1' ? false : true; // Convert to boolean
+    const creator = res.locals.s_username; 
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
     
     if (isNaN(id)) {
         return res.status(400).send('Invalid user ID');
     }
 
-    conn.query('update food_type set available = ? WHERE id = ?', [available,id], function (err, result) {
+    conn.query('update food_type set available = ?, creator = ?, createtime = ? WHERE id = ?', [available, creator, createTime, id], function (err, result) {
         if (err) {
             console.error(err);
             return res.status(500).send('Database error');
@@ -206,9 +304,20 @@ app.post('/addFoodtype', (req, res) => {
     const foodTypeName = req.body.foodTypeName;
     const creator = res.locals.s_username || 'admin'; // Default to 'admin' if not logged in
     const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+    let showOrder = 1;
 
-    const sql = 'INSERT INTO food_type (name, creator, createtime, available) VALUES (?, ?, ?, ?)';
-    conn.query(sql, [foodTypeName, creator, createTime, true], (err, result) => {
+    conn.query('SELECT MAX(showOrder) as maxorder FROM food_type',
+        function (error, results) {
+            if (error) {
+                res.status(500).send('Database error');
+            } else if (results.length > 0) {
+                showOrder = results[0].maxorder;
+            }
+        });
+
+
+    const sql = 'INSERT INTO food_type (name, creator, createtime, available, showOrder) VALUES (?, ?, ?, ?, ?)';
+    conn.query(sql, [foodTypeName, creator, createTime, true, showOrder], (err, result) => {
         if (err) {
             res.status(500).send('add Foodtype failed: ' + err.message);
         } else {
@@ -217,6 +326,116 @@ app.post('/addFoodtype', (req, res) => {
     });
 });
 
+
+app.post('/addMenuItem', upload.single('image'), (req, res) => {
+    const name = req.body.name;
+    const image = req.file ? '/uploads/' + req.file.filename : ''; // 图片路径
+    const description = req.body.description;
+    const price = parseFloat(req.body.price);
+    const foodTypeId = parseInt(req.body.foodtype);
+    const discount = parseInt(req.body.discount);
+    const creator = res.locals.s_username;
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const available = req.body.available === '1';
+
+    if (isNaN(discount)) {
+        return res.status(400).send('Invalid discount');
+    }
+
+    if (isNaN(foodTypeId)) {
+        return res.status(400).send('Invalid foodTypeId');
+    }
+
+    const sql = 'INSERT INTO menu (name, picture, description, price, foodtype, discount, creator, createtime, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    conn.query(sql, [name, image, description, price, foodTypeId, discount, creator, createTime, available], (err, result) => {
+        if (err) {
+            res.status(500).send('add MenuItem failed: ' + err.message);
+        } else {
+            res.redirect('/customizeMenu?foodTypeId=' + foodTypeId);
+        }
+    });
+});
+
+app.post('/deleteMenuItem', (req, res) => {
+    const id = parseInt(req.body.id);
+    const foodtype = parseInt(req.body.foodtype);
+
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid user ID');
+    }
+
+    if (isNaN(foodtype)) {
+        return res.status(400).send('Invalid foodtype');
+    }
+
+    conn.query('DELETE FROM menu WHERE id = ?', [id], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        }
+
+        res.redirect('/customizeMenu?foodTypeId=' + foodtype);
+    });
+});
+
+app.post('/listMenuItem', function (req, res) {
+    const id = parseInt(req.body.id);
+    const foodtype = parseInt(req.body.foodtype);
+    const available = req.body.available === '1' ? false : true; // Convert to boolean
+    const creator = res.locals.s_username; 
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+    
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid user ID');
+    }
+
+    if (isNaN(foodtype)) {
+        return res.status(400).send('Invalid foodtype');
+    }
+    conn.query('update menu set available = ?, creator = ?, createtime = ? WHERE id = ?', [available, creator, createTime, id], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        }
+
+        res.redirect('/customizeMenu?foodTypeId=' + foodtype);
+    });
+});
+
+app.post('/updateMenuItem', function (req, res) {
+    const name = req.body.name;
+    const image = req.body.image;
+    const description = req.body.description;
+    const price = parseFloat(req.body.price);
+    const foodTypeId = parseInt(req.body.foodTypeId);
+    const discount = parseInt(req.body.discount);
+    const creator = res.locals.s_username || 'admin'; // Default to 'admin' if not logged in
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+    const id = parseInt(req.body.id);
+    const available = req.body.available === '1' ? false : true; // Convert to boolean
+
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid user ID');
+    }
+
+    if (isNaN(discount)) {
+        return res.status(400).send('Invalid discount');
+    }
+
+    if (isNaN(foodTypeId)) {
+        return res.status(400).send('Invalid foodTypeId');
+    }
+
+    conn.query('update menu set name = ?, picture = ?, description = ?, price = ?, foodtype = ?, discount = ?, available = ?, creator = ?, createtime = ? WHERE id = ?', 
+        [name, image, description, price, foodTypeId, discount, available, creator, createTime, id], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        }
+
+        res.redirect('/customizeMenu?foodTypeId=' + foodTypeId);
+    });
+});
 
 app.post('/deleteUser', function (req, res) {
     const id = parseInt(req.body.id);

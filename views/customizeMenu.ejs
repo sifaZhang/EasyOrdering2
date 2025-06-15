@@ -15,10 +15,10 @@
                     <div class="card-header bg-dark text-white">Menu Categories</div>
                     <ul class="list-group list-group-flush" id="categoryList">
                         <% foodtypes.forEach(function(category, index) { %>
-                            <li class="list-group-item category-btn <%= index === 0 ? 'active' : '' %>"
+                            <li class="list-group-item category-btn <%= String(category.id) === String(foodTypeId) ? 'active' : '' %>"
                                 data-category-id="<%= category.id %>" style="cursor: pointer;">
                                 <%= category.name %>
-                            </li>
+                            </li>       
                             <% }); %>
                     </ul>
                 </div>
@@ -49,30 +49,136 @@
         </div>
     </div>
 
+    <!-- 弹出表单 Modal -->
+    <div class="modal fade" id="addMenuItemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <form action="/addMenuItem" method="POST" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Menu Item</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Image</label>
+                            <input name="image" type="file" accept="images/*" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input name="name" type="text" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Food type</label>
+                            <select name="foodtype" class="form-select me-3" required>
+                                <% foodtypes.forEach(function(category, index) { %>
+                                     <option value=<%= category.id %>>
+                                        <%= category.name %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Price</label>
+                            <input name="price" type="number" step="0.01" class="form-control" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Available</label>
+                            <select name="available" class="form-select me-3" required>
+                                <option value=1>True</option>
+                                <option value=0>False</option>
+                            </select>
+                        </div>
+    
+                        <div class="mb-3">
+                            <label class="form-label">Discount(%)</label>
+                            <input name="discount" type="number"  min="0" max="100" step="1" class="form-control" value="0" required>
+                        </div>
+    
+                         <input type="hidden" name="foodTypeId" id="foodTypeId" value="" />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <%- include('partials/footer.ejs') %>
+    </div>
+
+
+
     <script>
+        //show right table when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstCategory = document.querySelector('.category-btn.active');
+            if (firstCategory) {
+                firstCategory.click(); // 模拟点击 => 加载右侧菜单项
+            }
+        });
+
+        //show right table when hit category
         document.querySelectorAll('.category-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const categoryId = btn.dataset.categoryId;
 
+                //show menu items for this category
                 fetch(`/menuItems?categoryId=${categoryId}`)
                     .then(res => res.json())
                     .then(menuItems => {
                         const container = document.getElementById('menuItemsContainer');
 
-                        // 用 JS 构建表格行
+                        // 构建表格行
                         const rows = menuItems.map(item => `
                         <tr>
-                            <td><img src="${item.image_url}" class="img-thumbnail zoomable" style="width: 80px; cursor: pointer;" /></td>
+                            <td><img src="${item.picture}" class="img-thumbnail zoomable" style="width: 80px; cursor: pointer;" /></td>
                             <td>${item.name}</td>
                             <td>$${parseFloat(item.price).toFixed(2)}</td>
                             <td>${item.description}</td>
-                            <td>${item.discount}</td>
-                            <td>${item.available === 1? 'Yes' : 'No'}</td>
+                            <td>${item.discount}%</td>
+                            <td>${String(item.itemAvailable) === String(1) ? 'Yes' : 'No'}</td>
                             <td>${item.creator}</td>
-                            <td>${item.createtime}</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning">Edit</button>
-                                <button class="btn btn-sm btn-danger">Delete</button>
+                            <td>${new Date(item.createtime).toLocaleString('en-NZ')}</td>
+                            <td style="text-align: center;">
+                                 ${String(item.itemAvailable) === String(1) ? 
+                                    `<form action="/listMenuItem" method="POST"
+                                        onsubmit="return confirm(\'Are you sure you want to unlist this itme?\');">
+                                        <input type="hidden" name="id" value="${item.id}">
+                                        <input type="hidden" name="foodtype" value="${item.foodtype}">
+                                        <input type="hidden" name="available" value="${item.itemAvailable}">
+                                        <button class="btn btn-success btn-sm" style="margin-bottom: 5px">Unlist</button>
+                                    </form>` : 
+                                    `<form action="/listMenuItem" method="POST"
+                                        onsubmit="return confirm(\'Are you sure you want to list this itme?\');">
+                                        <input type="hidden" name="id" value="${item.id}">
+                                        <input type="hidden" name="foodtype" value="${item.foodtype}">
+                                        <input type="hidden" name="available" value="${item.itemAvailable}">
+                                        <button class="btn btn-primary btn-sm" style="margin-bottom: 5px">List</button>
+                                    </form>`
+                            }
+                                    
+                                <form action="/updateMenuItem" method="POST">
+                                    <button class="btn btn-warning btn-sm" style="margin-bottom: 5px" onclick="showEditMenuItemForm()">Edit</button>
+                                </form>
+                                
+                                <form action="/deleteMenuItem" method="POST"
+                                    onsubmit="return confirm('Are you sure you want to delete this itme?');">
+                                    <input type="hidden" name="id" value="${item.id}">
+                                    <input type="hidden" name="foodtype" value="${item.foodtype}">
+                                    <button class="btn btn-sm btn-danger">Delete</button>
+                                </form>
                             </td>
                         </tr>
                     `).join('');
@@ -114,6 +220,29 @@
                     });
             });
         });
+
+        // 处理点击事件，模拟点击第一个分类按钮
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const categoryId = btn.dataset.categoryId;
+
+                // 移除所有按钮的选中样式
+                document.querySelectorAll('.category-btn').forEach(b => {
+                    b.classList.remove('active');  
+                });
+
+                // 给当前点击的按钮添加选中样式
+                btn.classList.add('active');  
+                btn.click(); 
+            });
+        });
+
+        //show add menu item form
+        function showAddMenuItemForm() {
+            const modal = new bootstrap.Modal(document.getElementById('addMenuItemModal'));
+            modal.show();
+        }
+
     </script>
 
 </body>
