@@ -19,6 +19,9 @@ const nodemailer = require('nodemailer');
 // This line sets the environment variables 
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+require('./imageCleaner');
 
 // 设置存储配置
 const storage = multer.diskStorage({
@@ -336,7 +339,7 @@ app.post('/addFoodtype', (req, res) => {
 
 
 app.post('/addMenuItem', upload.single('image'), (req, res) => {
-    const name = req.body.name;
+    const name = req.body.itemName;
     const image = req.file ? '/uploads/' + req.file.filename : ''; // 图片路径
     const description = req.body.description;
     const price = parseFloat(req.body.price);
@@ -364,9 +367,7 @@ app.post('/addMenuItem', upload.single('image'), (req, res) => {
     });
 });
 
-function deletepicture(picture) {
-    const fs = require('fs');
-    const path = require('path');
+function deletePicture(picture) {
     if (picture) {
         const relativePath = picture.startsWith('/') ? picture.slice(1) : picture;
         const filePath = path.join(__dirname, 'public/images', relativePath);
@@ -386,10 +387,6 @@ function deletepicture(picture) {
 app.post('/deleteMenuItem', (req, res) => {
     const id = parseInt(req.body.id);
     const foodtype = parseInt(req.body.foodtype);
-    const picture = req.body.picture;
-    
-    // 删除图片文件 
-    deletepicture(picture);
 
     if (isNaN(id)) {
         return res.status(400).send('Invalid user ID');
@@ -433,20 +430,20 @@ app.post('/listMenuItem', function (req, res) {
     });
 });
 
-app.post('/updateMenuItem', function (req, res) {
-    const name = req.body.name;
+app.post('/updateMenuItem', upload.single('image'), (req, res) => {
+    const name = req.body.itemName;
     const image = req.file ? '/uploads/' + req.file.filename : ''; // 图片路径
     const description = req.body.description;
     const price = parseFloat(req.body.price);
-    const foodTypeId = parseInt(req.body.foodTypeId);
+    const foodTypeId = parseInt(req.body.foodtype);
     const discount = parseInt(req.body.discount);
     const creator = res.locals.s_username || 'admin'; // Default to 'admin' if not logged in
     const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
-    const id = parseInt(req.body.id);
-    const available = req.body.available === '1' ? false : true; // Convert to boolean
+    const id = parseInt(req.body.menuId);
+    const available = String(req.body.available) === '1' ? true : false; // Convert to boolean
 
     if (isNaN(id)) {
-        return res.status(400).send('Invalid user ID');
+        return res.status(400).send('Invalid ID');
     }
 
     if (isNaN(discount)) {
@@ -464,7 +461,7 @@ app.post('/updateMenuItem', function (req, res) {
                 if (error) throw error;
                 if (results.length > 0) {
                     const picture = results[0].picture;
-                    deletepicture(picture);
+                    deletePicture(picture);
                 } 
             });
 
@@ -475,7 +472,6 @@ app.post('/updateMenuItem', function (req, res) {
                     return res.status(500).send('Database error');
                 }
 
-                deletepicture(picture);
                 res.redirect('/customizeMenu?foodTypeId=' + foodTypeId);
             });
     }

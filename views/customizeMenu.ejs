@@ -10,7 +10,7 @@
     <div class="container-fluid">
         <div class="row">
             <!-- 左侧分类改进：用Card + List group -->
-            <div class="col-md-3 border-end p-3">
+            <div class="col-md-3 border-end p-2">
                 <div class="card shadow-sm">
                     <div class="card-header bg-dark text-white">Menu Categories</div>
                     <ul class="list-group list-group-flush" id="categoryList">
@@ -25,7 +25,7 @@
             </div>
     
             <!-- 右侧菜单项 -->
-            <div class="col-md-9 p-3">
+            <div class="col-md-9 p-2">
                 <div class="card shadow-sm">
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <span>Menu Items</span>
@@ -50,7 +50,7 @@
     </div>
 
     <!-- 弹出表单 Modal -->
-    <div class="modal fade" id="addMenuItemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="MenuItemModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <form id="formMenuItem" action="/addMenuItem" method="POST" enctype="multipart/form-data">
@@ -72,7 +72,7 @@
 
                         <div class="mb-3">
                             <label class="form-label">Name</label>
-                            <input id="itemName" name="name" type="text" class="form-control" required>
+                            <input id="itemName" name="itemName" type="text" class="form-control" required>
                         </div>
 
                         <div class="mb-3">
@@ -81,8 +81,8 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Food type</label>
-                            <select id="foodtype" type="hidden" name="foodtype" class="form-select me-3" required>
+                            <label id="labelFoodtype" class="form-label" style="display: none;">Food type</label>
+                            <select id="foodtype" style="display: none" name="foodtype" class="form-select me-3" required>
                                 <% foodtypes.forEach(function(category, index) { %>
                                      <option value=<%= category.id %>>
                                         <%= category.name %>
@@ -97,8 +97,8 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Available</label>
-                            <select id="available" type="hidden" name="available" class="form-select me-3" value="1" required>
+                            <label id="labelAvailable" class="form-label" style="display: none;">Available</label>
+                            <select id="available" style="display: none" name="available" class="form-select me-3" required>
                                 <option value=1>True</option>
                                 <option value=0>False</option>
                             </select>
@@ -193,7 +193,6 @@
                                     onsubmit="return confirm('Are you sure you want to delete this itme?');">
                                     <input type="hidden" name="id" value="${item.id}">
                                     <input type="hidden" name="foodtype" value="${item.foodtype}">
-                                    <input type="hidden" name="picture" value="${item.picture}">
                                     <button class="btn btn-sm btn-danger">Delete</button>
                                 </form>
                             </td>
@@ -256,14 +255,28 @@
 
         //show add menu item form
         function showAddMenuItemForm() {
-            const modal = new bootstrap.Modal(document.getElementById('addMenuItemModal'));
+            // 获取当前 active 的分类项
+            const activeCategory = document.querySelector('.category-btn.active');
+            if (!activeCategory) {
+                alert('Please select a category first.');
+            return;
+            }
+
+            // 设置分类选中
+            const foodtype = activeCategory.dataset.categoryId;
+            if (foodtype) {
+                document.getElementById('foodtype').value = foodtype;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('MenuItemModal'));
             
             document.getElementById('image').required = true;
+            document.getElementById('available').value = 1; // 默认设置为可用
 
             modal.show();
         }
 
-          // 实时预览上传的新图片
+        // 实时预览上传的新图片
         document.getElementById('image').addEventListener('change', function (event) {
             const file = event.target.files[0];
             const preview = document.getElementById('previewImage');
@@ -281,15 +294,20 @@
             }
         });
 
+        //show edit menu item form
         function showEditMenuItemForm(data = {}) {
-            const modal = new bootstrap.Modal(document.getElementById('addMenuItemModal'));
+            const modal = new bootstrap.Modal(document.getElementById('MenuItemModal'));
 
             document.getElementById('formMenuItem').action="/updateMenuItem";
             document.getElementById('modalTitle').textContent  = 'Edit New Menu Item';
             document.getElementById('itemName').value = data.itemName || '';
             document.getElementById('description').value = data.description || '';
             document.getElementById('foodtype').value = data.foodtype;
+            document.getElementById('foodtype').style.display = 'block';
+            document.getElementById('labelFoodtype').style.display = 'block';
             document.getElementById('price').value = data.price || '';
+            document.getElementById('available').style.display = 'block';
+            document.getElementById('labelAvailable').style.display = 'block';
             document.getElementById('available').value = data.available;
             document.getElementById('discount').value = data.discount;
             document.getElementById('menuId').value = data.menuId;
