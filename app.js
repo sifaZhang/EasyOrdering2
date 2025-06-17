@@ -52,6 +52,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 //This line will check for any request with a URL path starting with '/public'.
+app.use(express.static('public'));
 app.use('/public', express.static('public'));
 app.use('/uploads', express.static(__dirname + '/public/images/uploads'));
 
@@ -106,13 +107,20 @@ app.get('/customizeFoodtype', function (req, res) {
 });
 
 app.get('/overviewMenu', function (req, res) {
-    conn.query('SELECT * FROM menu_info', function (error, results) {
+    conn.query('SELECT * FROM menu_info order by foodtype ASC', function (error, results) {
         if (error) {
             return res.status(500).send('Database error (menu_info)');
         }
 
-        res.render('overviewMenu', {
-            menu: results
+        conn.query('SELECT * FROM food_type where available = 1 order by showorder', function (error2, results2) {
+            if (error2) {
+                return res.status(500).send('Database error (food_type)');
+            }
+
+            res.render('overviewMenu', {
+                menu: results,
+                foodtypes: results2
+            });
         });
     });
 });
@@ -356,9 +364,32 @@ app.post('/addMenuItem', upload.single('image'), (req, res) => {
     });
 });
 
+function deletepicture(picture) {
+    const fs = require('fs');
+    const path = require('path');
+    if (picture) {
+        const relativePath = picture.startsWith('/') ? picture.slice(1) : picture;
+        const filePath = path.join(__dirname, 'public/images', relativePath);
+
+        console.log('Attempting to delete file at:', filePath);
+
+        fs.unlink(filePath, (err) => {
+            if (err) {
+                console.error('Failed to delete image:', err.message);
+            } else {
+                console.log('Image deleted successfully:', filePath);
+            }
+        });
+    }
+}
+
 app.post('/deleteMenuItem', (req, res) => {
     const id = parseInt(req.body.id);
     const foodtype = parseInt(req.body.foodtype);
+    const picture = req.body.picture;
+    
+    // 删除图片文件 
+    deletepicture(picture);
 
     if (isNaN(id)) {
         return res.status(400).send('Invalid user ID');
@@ -404,7 +435,7 @@ app.post('/listMenuItem', function (req, res) {
 
 app.post('/updateMenuItem', function (req, res) {
     const name = req.body.name;
-    const image = req.body.image;
+    const image = req.file ? '/uploads/' + req.file.filename : ''; // 图片路径
     const description = req.body.description;
     const price = parseFloat(req.body.price);
     const foodTypeId = parseInt(req.body.foodTypeId);
@@ -426,15 +457,39 @@ app.post('/updateMenuItem', function (req, res) {
         return res.status(400).send('Invalid foodTypeId');
     }
 
-    conn.query('update menu set name = ?, picture = ?, description = ?, price = ?, foodtype = ?, discount = ?, available = ?, creator = ?, createtime = ? WHERE id = ?', 
-        [name, image, description, price, foodTypeId, discount, available, creator, createTime, id], function (err, result) {
-        if (err) {
-            console.error(err);
-            return res.status(500).send('Database error');
-        }
+    if (image) {
+        // delete the old picture before updating
+        conn.query('SELECT picture FROM menu WHERE id = ?', [id],
+            function (error, results, fields) {
+                if (error) throw error;
+                if (results.length > 0) {
+                    const picture = results[0].picture;
+                    deletepicture(picture);
+                } 
+            });
 
-        res.redirect('/customizeMenu?foodTypeId=' + foodTypeId);
-    });
+        conn.query('update menu set name = ?, picture = ?, description = ?, price = ?, foodtype = ?, discount = ?, available = ?, creator = ?, createtime = ? WHERE id = ?',
+            [name, image, description, price, foodTypeId, discount, available, creator, createTime, id], function (err, result) {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).send('Database error');
+                }
+
+                deletepicture(picture);
+                res.redirect('/customizeMenu?foodTypeId=' + foodTypeId);
+            });
+    }
+    else {
+        conn.query('update menu set name = ?, description = ?, price = ?, foodtype = ?, discount = ?, available = ?, creator = ?, createtime = ? WHERE id = ?',
+            [name, description, price, foodTypeId, discount, available, creator, createTime, id], function (err, result) {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).send('Database error');
+                }
+
+                res.redirect('/customizeMenu?foodTypeId=' + foodTypeId);
+            });
+    }
 });
 
 app.post('/deleteUser', function (req, res) {

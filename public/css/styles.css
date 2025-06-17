@@ -118,3 +118,7 @@
   background-color: #0d6efd;
   color: white;
 }
+
+.table td, .table th {
+  vertical-align: middle; /* 垂直居中 */
+}

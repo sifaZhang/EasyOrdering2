@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/header.ejs') %>
+        <title>Overview Menu</title>
+</head>
+<body>
+    <%- include('partials/navbarSelection.ejs') %>
+
+    <!-- Title -->
+    <h3 class="text-center mb-4" style="margin-top: 20px;">Today's menu</h3>
+
+    <% foodtypes.forEach(function(foodtype) { %>
+        <h5 class="text-left" style="margin-left: 20px; margin-top: 40px; margin-bottom: 5px;">
+            <%= foodtype.name %>
+        </h5>
+    
+        <div class="container-fluid" style="margin-top: 0;">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Image</th>
+                        <th>Item</th>
+                        <th>Price</th>
+                        <th>Discount</th>
+                        <th>Number</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% menu.forEach(function(item) {  if(String(item.foodtype) === String(foodtype.id)) { %>
+                        <tr>
+                            <td style="width: 15%; aspect-ratio: 1 / 1; vertical-align: middle; text-align: center;position:relative;">
+                                <% if (item.discount> 0) { %>
+                                <span style="
+                                position: absolute;
+                                top: 40px;
+                                right: 5px;
+                                background: red;
+                                color: white;
+                                font-size: 10px;
+                                padding: 2px 4px;
+                                border-radius: 3px;
+                                z-index: 10;
+                                transform: rotate(30deg);
+                                transform-origin: top right;
+                                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+                                font-family:Georgia, 'Times New Roman', Times, serif;
+                            ">
+                                        🔥SPECIAL
+                                </span>
+                                <% } %>
+                                <img src="<%= item.picture %>" class="img-thumbnail zoomable" style="width: 200px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px;" />
+                            </td>
+                            <td style="width: 53%;">
+                                <div><strong>
+                                        <%= item.name %>
+                                    </strong></div>
+                                <div class="text-muted small">
+                                    <%=item.description %>
+                                </div>
+                            </td>
+                            <td style="width: 8%;">
+                                $<%= parseFloat(item.price).toFixed(2) %>
+                            </td>
+                            <td style="width: 8%;  text-align: center;">
+                                <% if (item.discount > 0) { %>
+                                    <img src="/images/special-tag.png" style="width: 60%;" alt="Special" />
+                                    <div style="color: red; font-size: 13px; font-weight: bold; text-align: center;">
+                                        <%= item.discount %>%  OFF
+                                    </div>
+                                <% } %>
+                            </td>
+                            <td style="width: 8%;">
+                                <input type="number" min="1" value="1" class="form-control form-control-sm" style="width: 60px;" />
+                            </td>
+                            <td style="width: 8%;">
+                                <button class="btn btn-sm btn-primary">Order</button>
+                            </td>
+                        </tr>
+                        <% } %>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    <% }); %>
+
+
+    <!-- 模态框用于放大图片 -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <img id="modalImage" src="" class="img-fluid" />
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <%- include('partials/footer.ejs') %>
+    </div>
+
+    <script>
+        // 放大图片事件绑定（必须在插入后绑定）
+        document.querySelectorAll('.zoomable').forEach(img => {
+            img.addEventListener('click', () => {
+                const modalImg = document.getElementById('modalImage');
+                modalImg.src = img.src;
+                const myModal = new bootstrap.Modal(document.getElementById('imageModal'));
+                myModal.show();
+            });
+        });
+    </script>
+
+</body>
+</html>
+
+
