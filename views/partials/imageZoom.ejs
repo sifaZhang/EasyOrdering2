@@ -1,0 +1,11 @@
+    <script>
+        // 放大图片事件绑定（必须在插入后绑定）
+        document.querySelectorAll('.zoomable').forEach(img => {
+            img.addEventListener('click', () => {
+                const modalImg = document.getElementById('modalImage');
+                modalImg.src = img.src;
+                const myModal = new bootstrap.Modal(document.getElementById('imageModal'));
+                myModal.show();
+            });
+        });
+    </script>

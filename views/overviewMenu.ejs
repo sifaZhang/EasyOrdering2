@@ -72,7 +72,7 @@
                             <td style="width: 8%;">
                                 $<%= parseFloat(item.price).toFixed(2) %>
                             </td>
-                            <td style="width: 8%;  text-align: center;">
+                            <td style="width: 8%; text-align: center;">
                                 <% if (item.discount > 0) { %>
                                     <img src="/images/special-tag.png" style="width: 60%;" alt="Special" />
                                     <div style="color: red; font-size: 13px; font-weight: bold; text-align: center;">
@@ -81,11 +81,11 @@
                                 <% } %>
                             </td>
                             <% if (s_role==='Customer' || s_role==='Receptionist' ) { %>
-                                <td style="width: 8%;">
-                                    <input type="number" min="1" value="1" class="form-control form-control-sm" style="width: 60px;" />
+                                <td style="width: 8%; text-align: center;">
+                                    <input type="number" min="1" value="1" class="form-control form-control-sm" style="width: 60px; display: inline-block; margin: 0 auto;" />
                                 </td>
                             
-                                <td style="width: 8%;">
+                                <td style="width: 8%; text-align: center;">
                                     <button class="btn btn-sm btn-primary">Order</button>
                                 </td>
                             <% } %>
@@ -98,30 +98,13 @@
     <% }); %>
 
 
-    <!-- 模态框用于放大图片 -->
-    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <img id="modalImage" src="" class="img-fluid" />
-            </div>
-        </div>
-    </div>
+    <%- include('partials/imageZoomHolder.ejs') %>
     
     <div class="footer">
         <%- include('partials/footer.ejs') %>
     </div>
 
-    <script>
-        // 放大图片事件绑定（必须在插入后绑定）
-        document.querySelectorAll('.zoomable').forEach(img => {
-            img.addEventListener('click', () => {
-                const modalImg = document.getElementById('modalImage');
-                modalImg.src = img.src;
-                const myModal = new bootstrap.Modal(document.getElementById('imageModal'));
-                myModal.show();
-            });
-        });
-    </script>
+    <%- include('partials/imageZoom.ejs') %>
 
 </body>
 </html>

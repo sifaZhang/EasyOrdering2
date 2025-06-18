@@ -40,14 +40,7 @@
         </div>
     </div>
 
-    <!-- 模态框用于放大图片 -->
-    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <img id="modalImage" src="" class="img-fluid" />
-            </div>
-        </div>
-    </div>
+    <%- include('partials/imageZoomHolder.ejs') %>
 
     <!-- 弹出表单 Modal -->
     <div class="modal fade" id="MenuItemModal" tabindex="-1" aria-hidden="true">
@@ -185,7 +178,7 @@
                                         <input type="hidden" name="id" value="${item.id}">
                                         <input type="hidden" name="foodtype" value="${item.foodtype}">
                                         <input type="hidden" name="available" value="${item.itemAvailable}">
-                                        <button class="btn btn-primary btn-sm" style="margin-bottom: 5px">List</button>
+                                        <button class="btn btn-success btn-sm" style="margin-bottom: 5px">List</button>
                                     </form>`
                                 } 
                                 

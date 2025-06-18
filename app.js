@@ -13,6 +13,8 @@ var conn = require('./dbConfig');
 //This line sets up the express application to use 'EJS' as the view engine.
 app.set('view engine','ejs');
 
+const QRCode = require('qrcode');
+
 //This line sets mail server
 const nodemailer = require('nodemailer');
 
@@ -58,6 +60,7 @@ app.use(express.urlencoded({extended: true}));
 app.use(express.static('public'));
 app.use('/public', express.static('public'));
 app.use('/uploads', express.static(__dirname + '/public/images/uploads'));
+app.use('/QRCodes', express.static(__dirname + '/public/images/QRCodes'));
 
 
 app.get('/', function (req, res) {
@@ -105,6 +108,18 @@ app.get('/customizeFoodtype', function (req, res) {
             addSuccess: req.query.addSuccess,
             updateSuccess: req.query.updateSuccess,
             deleteSuccess: req.query.deleteSuccess
+        });
+    });
+});
+
+app.get('/qrcode', function (req, res) {
+    conn.query('SELECT * FROM qrcode order by tablenumber ASC', function (error, results) {
+        if (error) {
+            return res.status(500).send('Database error (qrcode)');
+        }
+
+        res.render('qrcode', {
+                qrcodes: results
         });
     });
 });
@@ -201,6 +216,84 @@ app.get('/logout',(req,res) => {
     res.locals.s_username = null;
     res.locals.s_role = null;
 	res.redirect('/');
+});
+
+app.post('/deleteQRCode', function (req, res) {
+    const tableNumber = parseInt(req.body.tableNumber);
+
+    if (isNaN(tableNumber)) {
+        return res.status(400).send('Invalid tableNumber');
+    }
+
+    conn.query('DELETE FROM qrcode WHERE tableNumber = ?', [tableNumber], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Database error');
+        }
+
+        res.redirect('/qrcode');
+    });
+});
+
+app.post('/addQRCode', function (req, res) {
+    const table = parseInt(req.body.tableNumber);
+    const creator = res.locals.s_username; // Default to 'admin' if not logged in
+    const createTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+
+    // 1. 验证输入
+    if (isNaN(table) || table <= 0) {
+        return res.status(400).json({ error: 'Invalid table number (must be a positive integer)' });
+    }
+
+    // 2. 检查桌号是否已存在
+    conn.query('SELECT * FROM qrcode WHERE tablenumber = ?', [table], function (err, result) {
+        if (err) {
+            console.error('Database query error:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (result.length > 0) {
+            return res.status(409).json({ error: 'Table number already exists' }); // HTTP 409 Conflict
+        }
+
+        // 3. 定义路径
+        const dirPath = path.join(__dirname, 'public/images/QRCodes'); // 建议存到 public 目录
+        const fileName = `table${table}.png`;
+        const filePath = path.join(dirPath, fileName);
+        const dataPath = `/QRCodes/${fileName}`; // 前端可访问的路径（假设 public 是静态资源目录）
+        const url = `http://localhost:3000/table/${table}`; // 二维码内容
+
+        // 4. 创建目录（如果不存在）
+        fs.mkdir(dirPath, { recursive: true }, (err) => {
+            if (err) {
+                console.error('Failed to create directory:', err);
+                return res.status(500).json({ error: 'Failed to create QR code directory' });
+            }
+
+            // 5. 生成二维码
+            QRCode.toFile(filePath, url, {
+                color: { dark: '#000000', light: '#ffffff' },
+                width: 300,
+                errorCorrectionLevel: 'H'
+            }, (err) => {
+                if (err) {
+                    console.error('QR code generation failed:', err);
+                    return res.status(500).json({ error: 'Failed to generate QR code' });
+                }
+
+                // 6. 存入数据库
+                const sql = 'INSERT INTO qrcode (tablenumber, creator, createtime, picture) VALUES (?, ?, ?, ?)';
+                conn.query(sql, [table, creator, createTime, dataPath], (err, result) => {
+                    if (err) {
+                        console.error('Database insert error:', err);
+                        return res.status(500).json({ error: 'Failed to save QR code to database.' });
+                    } else {
+                        res.redirect('/qrcode');
+                    }
+                });
+            });
+        });
+    });
 });
 
 app.post('/upFoodtype', function (req, res) {
