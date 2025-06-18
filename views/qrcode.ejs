@@ -34,11 +34,11 @@
                         </tr>
                         <tr>
                             <td style="text-align: center;">
-                                <button class="btn btn-sm btn-primary generate-btn" onclick="printQRCode('<%= qrcode.tablenumber %>')">Print</button>
+                                <button class="btn btn-sm btn-success generate-btn" onclick="printQRCode('<%= qrcode.tablenumber %>')">Print</button>
 
                                 <form action="/deleteQRCode" method="POST" style="display:inline-block;">
                                     <input type="hidden" name="tableNumber" value="<%= qrcode.tablenumber %>">
-                                    <button class="btn btn-sm btn-primary generate-btn">Delete</button>
+                                    <button class="btn btn-sm btn-danger generate-btn">Delete</button>
                                 </form>
                             </td>
                         </tr>
@@ -54,7 +54,7 @@
             <p class="input-hint">Please input a table number</p>
             <form action="/addQRCode" method="POST">
                 <input name="tableNumber" type="number" class="form-control qr-input" placeholder="Table number">
-                <button class="btn btn-success mt-3">Generate</button>
+                <button class="btn btn-primary mt-3">Generate</button>
             </form>
         </div>
     </div>
