@@ -54,7 +54,7 @@
                                 <% } %>
                                 <img src="<%= item.picture %>" class="img-thumbnail zoomable" style="width: 200px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px;" />
                             </td>
-                            <% if (s_role==='Customer' || s_role==='Receptionist' ) { %>
+                            <% if (s_role ==='Customer' || s_role ==='Receptionist' ) { %>
                                 <td style="width: 53%;">
                             <% } else { %>
                                 <td style="width: 69%;">
@@ -81,13 +81,18 @@
                                 <% } %>
                             </td>
                             <% if (s_role==='Customer' || s_role==='Receptionist' ) { %>
-                                <td style="width: 8%; text-align: center;">
-                                    <input type="number" min="1" value="1" class="form-control form-control-sm" style="width: 60px; display: inline-block; margin: 0 auto;" />
-                                </td>
-                            
-                                <td style="width: 8%; text-align: center;">
-                                    <button class="btn btn-sm btn-primary">Order</button>
-                                </td>
+                                <form action="/addItems" method="POST" class="add-form">
+                                    <td style="width: 8%; text-align: center;">
+                                        <input type="number" min="1" value="1" class="form-control form-control-sm"
+                                            style="width: 60px; display: inline-block; margin: 0 auto;" name="itemnumber"/>
+                                    </td>
+                                    <td style="width: 8%; text-align: center;">
+                                        <input name="discount" type="hidden" value="<%= item.discount %>">
+                                        <input name="price" type="hidden" value="<%= item.price %>">
+                                        <input name="itemname" type="hidden" value="<%= item.name %>">
+                                        <button class="btn btn-sm btn-success">Add</button>
+                                    </td>
+                                </form>
                             <% } %>
                         </tr>
                         <% } %>
@@ -105,6 +110,41 @@
     </div>
 
     <%- include('partials/imageZoom.ejs') %>
+<script>
+    document.querySelectorAll('.add-form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault(); // 阻止表单提交刷新页面
+
+            const formData = new FormData(form);
+            const data = {
+                itemname: formData.get('itemname'),
+                price: parseFloat(formData.get('price')),
+                discount: parseInt(formData.get('discount')),
+                itemnumber: parseInt(formData.get('itemnumber'))
+            };
+
+            fetch('/addItems', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        // 动态更新顶部购物车数据
+                        document.getElementById('cartItemCount').textContent = result.totalNumber;
+                        document.getElementById('ItemCount').textContent = result.totalNumber;
+                        document.getElementById('TotalAmount').textContent = `$${result.totalMoney.toFixed(2)}`;
+                    } else {
+                        alert('Add failed: ' + result.message);
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch addItems error:', err);
+                });
+        });
+    });
+</script>
 
 </body>
 </html>

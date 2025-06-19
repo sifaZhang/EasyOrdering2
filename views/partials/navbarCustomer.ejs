@@ -3,14 +3,14 @@
 <div class="custom-navbar">
     <div class="container-fluid d-flex align-items-center">
         <div>
-            <p class="page-title" style="font-size:xx-large; padding-top: 50px;">Easy Ordering</p>
+            <p class="page-title" style="font-size:xx-large; padding-top: 40px;">Easy Ordering</p>
             <p class="page-title" style="font-size:large;">Make your orders easier</p>
         </div>
     
         <div class="d-flex align-items-center ms-auto text-white">
             <!-- 用户名 -->
             <div class="nav-div" style="margin-right: 20px;">
-                Welcome, <strong style="color:crimson ;"><%= session.username %></strong>
+                Welcome Customer: <strong style="color:crimson ;"><%= s_username %></strong>
             </div>
     
             <a class="nav-menu nav-link" href="/logout">Logout</a>
@@ -35,19 +35,19 @@
             <div class="d-flex align-items-center ms-auto text-white">
                 <!-- 总项目数和金额 -->
                 <div class="me-4 text-end nav-div">
-                    <span id="item-count" style="padding-right: 2px;">2</span> items
+                    <span id="ItemCount" style="padding-right: 2px;"><%= totalNumber %></span> items
                 </div>
 
                 <div class="me-4 text-end nav-div">
-                    Total: $<span id="total-amount">38.50</span>
+                    Total: $<span id="TotalAmount">$<%= parseFloat(totalMoney).toFixed(2) %></span>
                 </div>
 
                 <!-- 购物车图标 -->
                 <a href="/cart" class="btn btn-outline-light position-relative" style="margin-top: 50px;">
                     <i class="bi bi-cart3"></i>
                     <!-- 可选徽标气泡 -->
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        2
+                    <span id="cartItemCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        <%= totalNumber %>
                     </span>
                 </a>
             </div>

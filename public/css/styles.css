@@ -1,9 +1,14 @@
 .custom-navbar {
-  height: 250px;
+  height: 230px;
   background-image: url('/public/images/Title.jpg');
   background-size: cover;         /* 自动缩放填充整个区域 */
   background-position: center;    /* 图片居中显示 */
   background-repeat: no-repeat;   /* 不重复平铺 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* 保证在最上层 */
 }
 
 .page-title {
@@ -158,4 +163,9 @@
     padding: 6px 16px;
     border-radius: 8px;
     border: none;
+}
+
+body {
+  padding-top: 230px;
+  /* 根据 navbar 高度微调 */
 }

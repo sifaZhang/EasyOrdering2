@@ -124,22 +124,112 @@ app.get('/qrcode', function (req, res) {
     });
 });
 
-app.get('/overviewMenu', function (req, res) {
-    conn.query('SELECT * FROM menu_info order by foodtype ASC', function (error, results) {
+function renderOverviewMenu(req, res) {
+    conn.query('SELECT * FROM menu_info ORDER BY foodtype ASC', function (error, menuResults) {
         if (error) {
             return res.status(500).send('Database error (menu_info)');
         }
 
-        conn.query('SELECT * FROM food_type where available = 1 order by showorder', function (error2, results2) {
+
+        conn.query('SELECT * FROM food_type WHERE available = 1 ORDER BY showorder', function (error2, foodTypeResults) {
             if (error2) {
                 return res.status(500).send('Database error (food_type)');
             }
 
-            res.render('overviewMenu', {
-                menu: results,
-                foodtypes: results2
-            });
+            if (req.session.orderId) {
+                conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
+                    [req.session.orderId, req.session.pendingId], function (error3, statisticsResults) {
+                        if (error3) {
+                            return res.status(500).send('Database error (statisticsResults)');
+                        }
+                        else if (statisticsResults.length > 0) {
+                            totalMoney = statisticsResults[0].total_price;
+                            totalNumber = statisticsResults[0].total_number;
+
+                            res.render('overviewMenu', {
+                                menu: menuResults,
+                                foodtypes: foodTypeResults,
+                                totalMoney: statisticsResults[0].total_price || 0,
+                                totalNumber: statisticsResults[0].total_number || 0
+                            });
+                        }
+                });
+            }
+            else{
+                res.render('overviewMenu', {
+                    menu: menuResults,
+                    foodtypes: foodTypeResults,
+                    totalMoney: 0,
+                    totalNumber: 0
+                });
+            }
         });
+    });
+}
+
+app.get('/overviewMenu', renderOverviewMenu);
+
+// GET /table/8
+app.get('/table/:table', (req, res) => {
+    const tableNumber = parseInt(req.params.table);
+
+    if (isNaN(tableNumber)) {
+        return res.status(400).json({ error: 'Invalid tableNumber' });
+    }
+
+    req.session.loggedin = true;
+    res.locals.s_role = req.session.role = 'Customer';
+
+    conn.query("Select * from order_status where status = 'pending' or status = 'completed'", (err, result) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).send('Failed to save new items to database.');
+        } else if (result.length > 1) {
+            if (result[0].status === 'completed') {
+                req.session.completed = result[0].id;
+                req.session.pendingId = result[1].id;
+            } else {
+                req.session.pendingId = result[0].id;
+                req.session.completed = result[1].id;
+            }
+
+            //check whether the customer has existed
+            const query = 'SELECT * FROM orders WHERE tablenumber = ? and status < ?';
+            conn.query(query, [tableNumber, req.session.completed], function (err, results) {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).send('Database error');
+                }
+                else if (results.length > 0) {
+                    //log in again or more than two people login
+                    res.locals.s_username = req.session.username = results[0].creator;
+
+                    req.session.orderId = results[0].id;;
+                    req.session.tableNumber = results[0].tablenumber;;
+
+                    console.log('A new Customer', req.session.username, 'is logging in again.');
+
+                    // 调用封装好的函数
+                    renderOverviewMenu(req, res);
+                }
+                else {
+                    //New customer
+                    res.locals.s_username = req.session.username = Date.now().toString() + Math.floor(Math.random() * 1000);
+
+                    req.session.orderId = 0;
+                    req.session.tableNumber = tableNumber;
+
+                    console.log('A new Customer', req.session.username, 'is logging in.');
+
+                    // 调用封装好的函数
+                    renderOverviewMenu(req, res);
+                }
+            });
+        }
+        else{
+            console.error('Database error:', err);
+            return res.status(500).send('Failed to get status.');
+        }
     });
 });
 
@@ -215,7 +305,77 @@ app.get('/logout',(req,res) => {
     req.session.destroy();
     res.locals.s_username = null;
     res.locals.s_role = null;
+    
 	res.redirect('/');
+});
+
+//Add items into order
+app.post('/addItems', function (req, res) {
+    const itemName = req.body.itemname;
+    const price = parseFloat(req.body.price);
+    const discount = parseInt(req.body.discount);
+    const itemNumber = parseInt(req.body.itemnumber);
+    const orderTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+
+    if (req.session.orderId === 0) {
+        //create a new order
+        const sql = 'INSERT INTO orders (creator, ordertime, tablenumber, status) VALUES (?, ?, ?, ?)';
+        conn.query(sql, [res.locals.s_username, orderTime, req.session.tableNumber, req.session.pendingId], (err, result) => {
+            if (err) {
+                console.error('Database insert error:', err);
+                return res.status(500).json({success: false, message: 'Failed to save a new order to database.'});
+            } else {
+                req.session.orderId = result.insertId;
+
+                //appending the items into order
+                const sql = 'INSERT INTO order_items (itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?)';
+                conn.query(sql, [itemName, price, discount, itemNumber, req.session.orderId, req.session.pendingId], (err, result) => {
+                    if (err) {
+                        console.error('Database insert error:', err);
+                        return res.status(500).json({success: false, message: 'Failed to save new items to database.'});
+                    } else {
+                        conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
+                            [req.session.orderId, req.session.pendingId], function (error3, statisticsResults) {
+                                if (error3) {
+                                    return res.status(500).send('Database error (statisticsResults)');
+                                }
+                                else if (statisticsResults.length > 0) {
+                                    res.json({
+                                        success: true,
+                                        totalMoney: statisticsResults[0].total_price || 0,
+                                        totalNumber: statisticsResults[0].total_number || 0
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+    else {
+        //appending the items into order
+        const sql = 'INSERT INTO order_items (itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?)';
+        conn.query(sql, [itemName, price, discount, itemNumber, req.session.orderId, req.session.pendingId], (err, result) => {
+            if (err) {
+                console.error('Database insert error:', err);
+                return res.status(500).json({success: false, message: 'Failed to save new items to database.'});
+            } else {
+                conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
+                    [req.session.orderId, req.session.pendingId], function (error3, statisticsResults) {
+                        if (error3) {
+                            return res.status(500).send('Database error (statisticsResults)');
+                        }
+                        else if (statisticsResults.length > 0) {
+                            res.json({
+                                success: true,
+                                totalMoney: statisticsResults[0].total_price || 0,
+                                totalNumber: statisticsResults[0].total_number || 0
+                            });
+                        }
+                    });
+            }
+        });
+    }
 });
 
 app.post('/deleteQRCode', function (req, res) {
@@ -707,7 +867,7 @@ app.post('/auth', function(req, res) {
 			if (error) throw error;
 			if (results.length > 0) {
 				req.session.loggedin = true;
-				req.session.password = results[0].password;
+				//req.session.password = results[0].password;
                 req.session.username = results[0].username;
                 req.session.role = results[0].type;
 				console.log("User name:",results[0].username, "User role:",results[0].type);

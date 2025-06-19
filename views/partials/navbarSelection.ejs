@@ -3,6 +3,8 @@
             <%- include('navbarAdmin.ejs') %>
         <% } else if (s_role === 'Receptionist') { %>
             <%- include('navbarRecep.ejs') %>
+        <% } else if (s_role === 'Customer') { %>
+            <%- include('navbarCustomer.ejs') %>
         <% } else { %>
             <%- include('navbarGuest.ejs') %>
         <% } %>
