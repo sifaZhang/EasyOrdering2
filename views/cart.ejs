@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/header.ejs') %>
+        <title>Cart</title>
+</head>
+
+<body>
+    <%- include('partials/navbarSelection.ejs') %>
+
+    <!-- Title -->
+    <h3 class="text-center mb-4" style="margin-top: 20px;">Your Shopping Cart</h3>
+    
+    
+    <div class="table-responsive rounded overflow-hidden border" style="margin: 10px; margin-top: 0px;">
+        <table class="table table-bordered table-striped  mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Item</th>
+                    <th>Price</th>
+                    <th>Discount</th>
+                    <th>Number</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% orderItems.forEach(function(item) { %>
+                    <tr>
+                        <td style="width: 25%;">
+                            <%= item.itemname %>
+                        </td>
+                        <td style="width: 15%;">
+                            $<%= parseFloat(item.price).toFixed(2) %>
+                        </td>
+                        <td style="width: 15%; text-align: center;">
+                            <% if (item.discount> 0) { %>
+                                <div style="color: red; font-size: 13px; font-weight: bold; text-align: center;">
+                                    <%= item.discount %>% OFF
+                                </div>
+                            <% } %>
+                        </td>
+                        <td style="width: 15%; text-align: center;">
+                             <%= item.itemnumber %>
+                        </td>
+                        <td style="width: 15%;">
+                            <%= item.statusname%>
+                        </td>
+                        <form action="/deleteItem" method="POST" class="delete-form"
+                            onsubmit="return confirm('Are you sure you want to delete this item?');">
+                            <td style="width: 15%; text-align: center;">
+                                <input name="itemId" type="hidden" value="<%= item.id %>">
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </form>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+
+    <% if (orderItems && orderItems.length > 0) { %>
+    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
+        <form action="/placeOrder" method="POST" onsubmit="return confirm('Are you sure you want to place the order');">
+            <input name="orderId" type="hidden" value="<%= orderItems[0].orderid %>">
+            <button class="btn btn-sm btn-primary" type="submit" style="font-size:x-large; width: 200px; height: 60px;">Place an order</button>
+        </form>
+        <form action="/Payment" method="POST">
+            <input name="orderId" type="hidden" value="<%= orderItems[0].orderid %>">
+            <button class="btn btn-sm btn-primary" type="submit" style="font-size:x-large; width: 200px; height: 60px;">Pay</button>
+        </form>
+    </div>
+    <% } else { %>
+        <div style="text-align: center; color: red;">
+            Nothing!
+        </div>
+    <% } %>
+
+    <div class="footer">
+        <%- include('partials/footer.ejs') %>
+    </div>
+
+
+    <script>
+    document.querySelectorAll('.delete-form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault(); // 阻止表单提交刷新页面
+
+            const formData = new FormData(form);
+            const data = {
+                itemId: formData.get('itemId'),
+            };
+
+            fetch('/deleteItem', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        // 删除该行
+                        form.closest('tr').remove();
+                        
+                        // 动态更新顶部购物车数据
+                        document.getElementById('cartItemCount').textContent = result.totalNumber;
+                        document.getElementById('ItemCount').textContent = result.totalNumber;
+                        document.getElementById('TotalAmount').textContent = `$${result.totalMoney.toFixed(2)}`;
+                    } else {
+                        alert('delete failed: ' + result.message);
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch delete error:', err);
+                });
+        });
+    });
+    </script>
+
+</body>
+</html>
