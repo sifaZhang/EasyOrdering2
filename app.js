@@ -138,7 +138,7 @@ function renderOverviewMenu(req, res) {
 
             if (req.session.orderId) {
                 conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
-                    [req.session.orderId, req.session.pendingId], function (error3, statisticsResults) {
+                    [req.session.orderId, req.session.pending], function (error3, statisticsResults) {
                         if (error3) {
                             return res.status(500).send('Database error (statisticsResults)');
                         }
@@ -180,18 +180,35 @@ app.get('/table/:table', (req, res) => {
     req.session.loggedin = true;
     res.locals.s_role = req.session.role = 'Customer';
 
-    conn.query("Select * from order_status where status = 'pending' or status = 'completed'", (err, result) => {
+    conn.query("Select * from order_status", (err, result) => {
         if (err) {
             console.error('Database error:', err);
             return res.status(500).send('Failed to save new items to database.');
         } else if (result.length > 1) {
-            if (result[0].status === 'completed') {
-                req.session.completed = result[0].id;
-                req.session.pendingId = result[1].id;
-            } else {
-                req.session.pendingId = result[0].id;
-                req.session.completed = result[1].id;
-            }
+            result.forEach(element => {
+                switch (element.status) {
+                    case 'pending':
+                        req.session.pending = element.id;
+                        break;
+                    case 'confirmed':
+                        req.session.confirmed = element.id;
+                        break;
+                    case 'preparing':
+                        req.session.preparing = element.id;
+                        break;
+                    case 'ready':
+                        req.session.ready = element.id;
+                        break;
+                    case 'completed':
+                        req.session.completed = element.id;
+                        break;
+                    case 'cancelled':
+                        req.session.cancelled = element.id;
+                        break;
+                    default:
+                        break;
+                }
+            });
 
             //check whether the customer has existed
             const query = 'SELECT * FROM orders WHERE tablenumber = ? and status < ?';
@@ -320,7 +337,7 @@ app.post('/addItems', function (req, res) {
     if (req.session.orderId === 0) {
         //create a new order
         const sql = 'INSERT INTO orders (creator, ordertime, tablenumber, status) VALUES (?, ?, ?, ?)';
-        conn.query(sql, [res.locals.s_username, orderTime, req.session.tableNumber, req.session.pendingId], (err, result) => {
+        conn.query(sql, [res.locals.s_username, orderTime, req.session.tableNumber, req.session.pending], (err, result) => {
             if (err) {
                 console.error('Database insert error:', err);
                 return res.status(500).json({success: false, message: 'Failed to save a new order to database.'});
@@ -329,13 +346,13 @@ app.post('/addItems', function (req, res) {
 
                 //appending the items into order
                 const sql = 'INSERT INTO order_items (itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?)';
-                conn.query(sql, [itemName, price, discount, itemNumber, req.session.orderId, req.session.pendingId], (err, result) => {
+                conn.query(sql, [itemName, price, discount, itemNumber, req.session.orderId, req.session.pending], (err, result) => {
                     if (err) {
                         console.error('Database insert error:', err);
                         return res.status(500).json({success: false, message: 'Failed to save new items to database.'});
                     } else {
                         conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
-                            [req.session.orderId, req.session.pendingId], function (error3, statisticsResults) {
+                            [req.session.orderId, req.session.pending], function (error3, statisticsResults) {
                                 if (error3) {
                                     return res.status(500).send('Database error (statisticsResults)');
                                 }
@@ -355,13 +372,13 @@ app.post('/addItems', function (req, res) {
     else {
         //appending the items into order
         const sql = 'INSERT INTO order_items (itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?)';
-        conn.query(sql, [itemName, price, discount, itemNumber, req.session.orderId, req.session.pendingId], (err, result) => {
+        conn.query(sql, [itemName, price, discount, itemNumber, req.session.orderId, req.session.pending], (err, result) => {
             if (err) {
                 console.error('Database insert error:', err);
                 return res.status(500).json({success: false, message: 'Failed to save new items to database.'});
             } else {
                 conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
-                    [req.session.orderId, req.session.pendingId], function (error3, statisticsResults) {
+                    [req.session.orderId, req.session.pending], function (error3, statisticsResults) {
                         if (error3) {
                             return res.status(500).send('Database error (statisticsResults)');
                         }
