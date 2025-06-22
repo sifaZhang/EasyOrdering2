@@ -49,6 +49,8 @@ app.use(session({
 app.use((req, res, next) => {
     res.locals.s_username = req.session.username || null;
     res.locals.s_role = req.session.role || null;
+    res.locals.s_compeleted = req.session.completed || 15;
+    res.locals.s_ready = req.session.ready || 14;
     next();
 });
 
@@ -96,6 +98,16 @@ app.get('/allAccounts', function (req, res) {
     });
 });
 
+app.get('/payment', function (req, res) {
+    const totalMoney = parseFloat(req.query.totalMoney);
+    const totalNumber = parseFloat(req.query.totalNumber);
+
+    res.render('payment', {
+        totalMoney: totalMoney,
+        totalNumber: totalNumber,
+        success: req.query.success
+    });
+});
 
 app.get('/customizeFoodtype', function (req, res) {
     conn.query('SELECT * FROM food_type order by showorder ASC', function (error, results) {
@@ -130,8 +142,8 @@ app.get('/cart', function (req, res) {
             return res.status(500).send('Database error (order_items_info)');
         }
 
-        conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
-            [req.session.orderId, req.session.pending], function (error3, statisticsResults) {
+        conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status < ?',
+            [req.session.orderId, req.session.completed], function (error3, statisticsResults) {
                 if (error3) {
                     return res.status(500).send('Database error (statisticsResults)');
                 }
@@ -159,9 +171,9 @@ function renderOverviewMenu(req, res) {
                 return res.status(500).send('Database error (food_type)');
             }
 
-            if (req.session.orderId) {
-                conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
-                    [req.session.orderId, req.session.pending], function (error3, statisticsResults) {
+            if (String(req.session.orderId) !== '0') {
+                conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status < ?',
+                    [req.session.orderId, req.session.completed], function (error3, statisticsResults) {
                         if (error3) {
                             return res.status(500).send('Database error (statisticsResults)');
                         }
@@ -244,7 +256,8 @@ app.get('/table/:table', (req, res) => {
                     req.session.orderId = results[0].id;;
                     req.session.tableNumber = results[0].tablenumber;;
 
-                    console.log('A new Customer', req.session.username, 'is logging in again.');
+                    console.log('A new Customer:', req.session.username, 'is logging in again. orderId=', 
+                        req.session.orderId, 'tableNumber=', req.session.tableNumber);
 
                     // 调用封装好的函数
                     renderOverviewMenu(req, res);
@@ -398,6 +411,25 @@ function addItem2Databse(req, res) {
             }
     });
 }
+
+app.post('/pay', function (req, res) {
+    const orderId = req.session.orderId;
+    const finishtime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+
+    if (isNaN(orderId)) {
+        return res.status(500).json({success: false, message: 'Invalid orderId'});
+    }
+
+    const sql = 'UPDATE orders SET status = ?, finishtime = ? where id = ?';
+    conn.query(sql, [req.session.completed, finishtime, orderId], (err, result) => {
+        if (err) {
+            console.error('Database update error:', err);
+            return res.status(500).json({ success: false, message: 'Failed to update database.' });
+        } else {
+            res.redirect('/payment?success=1');
+        }
+    });
+});
 
 app.post('/placeOrder', function (req, res) {
     const orderId = req.body.orderId;

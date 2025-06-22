@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/header.ejs') %>
+        <title>Payment Page</title>
+</head>
+
+<body>
+    <%- include('partials/navbarSelection.ejs') %>
+    
+    <div class="payment-form" style="margin: 10px;">
+        <h4 class="mb-4 text-center">💳 Secure Payment</h4>
+        <form action="/pay" method="POST" onsubmit="return confirm('Confirm payment?');">
+            <div class="mb-3">
+                <label for="cardNumber" class="form-label">Card Number</label>
+                <input type="text" class="form-control" id="cardNumber" name="cardNumber" placeholder="1234 5678 9012 3456"
+                    required>
+            </div>
+            <div class="mb-3 row">
+                <div class="col">
+                    <label for="expiry" class="form-label">Expiry</label>
+                    <input type="text" class="form-control" id="expiry" name="expiry" placeholder="MM/YY" required>
+                </div>
+                <div class="col">
+                    <label for="cvv" class="form-label">CVV</label>
+                    <input type="password" class="form-control" id="cvv" name="cvv" placeholder="123" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount (NZD)</label>
+                <input type="number" class="form-control" id="amount" name="amount" value="<%= totalMoney %>" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Pay Now</button>
+        </form>
+    </div>
+    
+    <% if (success === '1' ) { %>
+        <div class="alert alert-success" style="text-align: center;">Pay success!</div>
+    <% } else if (success === '0' ) { %>
+        <div class="alert alert-danger">Pay fail, please retry!</div>
+    <% } %>
+</body>
+</html>

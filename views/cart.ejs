@@ -50,7 +50,9 @@
                             onsubmit="return confirm('Are you sure you want to delete this item?');">
                             <td style="width: 15%; text-align: center;">
                                 <input name="itemId" type="hidden" value="<%= item.id %>">
+                                <% if (item.status < s_ready ) { %>
                                 <button class="btn btn-sm btn-danger">Delete</button>
+                                <% } %>
                             </td>
                         </form>
                     </tr>
@@ -62,11 +64,12 @@
     <% if (orderItems && orderItems.length > 0) { %>
     <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
         <form action="/placeOrder" method="POST" onsubmit="return confirm('Are you sure you want to place the order');">
-            <input name="orderId" type="hidden" value="<%= orderItems[0].orderid %>">
+            <input name="orderId" type="hidden" value="<%= orderItems[0].orderid %>">      
             <button class="btn btn-sm btn-primary" type="submit" style="font-size:x-large; width: 200px; height: 60px;">Place an order</button>
         </form>
-        <form action="/Payment" method="POST">
-            <input name="orderId" type="hidden" value="<%= orderItems[0].orderid %>">
+        <form action="/payment" method="GET">
+            <input name="totalMoney" type="hidden" value="<%= totalMoney %>">
+            <input name="totalNumber" type="hidden" value="<%= totalNumber %>">
             <button class="btn btn-sm btn-primary" type="submit" style="font-size:x-large; width: 200px; height: 60px;">Pay</button>
         </form>
     </div>
