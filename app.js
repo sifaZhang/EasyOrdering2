@@ -51,6 +51,9 @@ app.use((req, res, next) => {
     res.locals.s_role = req.session.role || null;
     res.locals.s_compeleted = req.session.completed || 15;
     res.locals.s_ready = req.session.ready || 14;
+    res.locals.s_totalNumber = req.session.totalNumber || 0;
+    res.locals.s_totalMoney = req.session.totalMoney || 0;
+
     next();
 });
 
@@ -66,7 +69,15 @@ app.use('/QRCodes', express.static(__dirname + '/public/images/QRCodes'));
 
 
 app.get('/', function (req, res) {
-    res.render('home');
+    conn.query('SELECT * FROM top3_items_per_type', function (error, results) {
+        if (error) {
+            return res.status(500).send('Database error (top3_items_per_type)');
+        }
+
+        res.render('home', {
+            top3ItemsPerType: results,
+        });
+    });
 });
 
 app.get('/login', function (req, res) {
@@ -99,12 +110,8 @@ app.get('/allAccounts', function (req, res) {
 });
 
 app.get('/payment', function (req, res) {
-    const totalMoney = parseFloat(req.query.totalMoney);
-    const totalNumber = parseFloat(req.query.totalNumber);
 
     res.render('payment', {
-        totalMoney: totalMoney,
-        totalNumber: totalNumber,
         success: req.query.success
     });
 });
@@ -142,20 +149,10 @@ app.get('/cart', function (req, res) {
             return res.status(500).send('Database error (order_items_info)');
         }
 
-        conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status < ?',
-            [req.session.orderId, req.session.completed], function (error3, statisticsResults) {
-                if (error3) {
-                    return res.status(500).send('Database error (statisticsResults)');
-                }
-                else if (statisticsResults.length > 0) {
-                    res.render('cart', {
-                        success: true,
-                        orderItems: results,
-                        totalMoney: statisticsResults[0].total_price || 0,
-                        totalNumber: statisticsResults[0].total_number || 0
-                    });
-                }
-            });
+        res.render('cart', {
+            success: true,
+            orderItems: results
+        });
     });
 });
 
@@ -178,21 +175,21 @@ function renderOverviewMenu(req, res) {
                             return res.status(500).send('Database error (statisticsResults)');
                         }
                         else if (statisticsResults.length > 0) {
+                            res.locals.s_totalNumber = req.session.totalNumber = statisticsResults[0].total_number || 0;
+                            res.locals.s_totalMoney = req.session.totalMoney = statisticsResults[0].total_price || 0;
                             res.render('overviewMenu', {
                                 menu: menuResults,
-                                foodtypes: foodTypeResults,
-                                totalMoney: statisticsResults[0].total_price || 0,
-                                totalNumber: statisticsResults[0].total_number || 0
+                                foodtypes: foodTypeResults
                             });
                         }
                 });
             }
             else{
+                res.locals.s_totalNumber = req.session.totalNumber = 0;
+                res.locals.s_totalMoney = req.session.totalMoney = 0;
                 res.render('overviewMenu', {
                     menu: menuResults,
-                    foodtypes: foodTypeResults,
-                    totalMoney: 0,
-                    totalNumber: 0
+                    foodtypes: foodTypeResults
                 });
             }
         });
@@ -366,32 +363,35 @@ function sendStatistics(req, res) {
                 return res.status(500).send('Failed to calculate statistics.');
             }
 
+            req.session.totalMoney = results[0].total_price || 0;
+            req.session.totalNumber = results[0].total_number || 0;
             res.json({
                 success: true,
-                totalMoney: results[0].total_price || 0,
-                totalNumber: results[0].total_number || 0
+                totalMoney: req.session.totalMoney,
+                totalNumber: req.session.totalNumber
             });
         });
 }
 
 function addItem2Databse(req, res) {
-    const itemName = req.body.itemname;
+    const itemId = req.body.itemId;
+    const itemName = req.body.itemName;
     const price = parseFloat(req.body.price);
     const discount = parseInt(req.body.discount);
-    let itemNumber = parseInt(req.body.itemnumber);
+    let itemNumber = parseInt(req.body.itemNumber);
     const orderTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 
-    conn.query('SELECT * from order_items where orderid = ? and itemname = ? and status = ?',
-        [req.session.orderId, itemName, req.session.pending], (err, result) => {
+    conn.query('SELECT * from order_items where orderid = ? and itemid = ? and status = ?',
+        [req.session.orderId, itemId, req.session.pending], (err, result) => {
             if (err) {
                 return res.status(500).send('Failed to save new items to database.');
             } else if (result.length > 0) {
                 itemNumber += result[0].itemnumber;
-                const itemId = result[0].id;
+                const orderItemId = result[0].id;
 
                 // 也可以直接更新
                 const updateSQL = 'UPDATE order_items SET itemnumber = ? WHERE id = ? ';
-                conn.query(updateSQL, [itemNumber, itemId], (err2, result2) => {
+                conn.query(updateSQL, [itemNumber, orderItemId], (err2, result2) => {
                     if (err2) {
                         return res.status(500).send('Failed to update item.');
                     }
@@ -400,8 +400,8 @@ function addItem2Databse(req, res) {
                 });
             } else {
                 // 没有原来项，直接插入
-                const insertSQL = 'INSERT INTO order_items (itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?)';
-                conn.query(insertSQL, [itemName, price, discount, itemNumber, req.session.orderId, req.session.pending], (err3, result3) => {
+                const insertSQL = 'INSERT INTO order_items (itemid, itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                conn.query(insertSQL, [itemId, itemName, price, discount, itemNumber, req.session.orderId, req.session.pending], (err3, result3) => {
                     if (err3) {
                         return res.status(500).send('Failed to insert item.');
                     }
@@ -426,6 +426,8 @@ app.post('/pay', function (req, res) {
             console.error('Database update error:', err);
             return res.status(500).json({ success: false, message: 'Failed to update database.' });
         } else {
+            res.locals.s_totalNumber = req.session.totalNumber = 0;
+            res.locals.s_totalMoney = req.session.totalMoney = 0;
             res.redirect('/payment?success=1');
         }
     });
@@ -504,11 +506,11 @@ app.post('/deleteItem', function (req, res) {
                         return res.status(500).send('Database error (statisticsResults)');
                     }
                     else if (statisticsResults.length > 0) {
+                        req.session.totalMoney = statisticsResults[0].total_price || 0;
+                        req.session.totalNumber = statisticsResults[0].total_number || 0;
                         res.json({
                             success: true,
-                            orderItems: results,
-                            totalMoney: statisticsResults[0].total_price || 0,
-                            totalNumber: statisticsResults[0].total_number || 0
+                            orderItems: results
                         });
                     }
                 });

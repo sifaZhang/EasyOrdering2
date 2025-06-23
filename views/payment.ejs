@@ -28,7 +28,7 @@
             </div>
             <div class="mb-3">
                 <label for="amount" class="form-label">Amount (NZD)</label>
-                <input type="number" class="form-control" id="amount" name="amount" value="<%= totalMoney %>" required>
+                <input type="number" class="form-control" id="amount" name="amount" value="<%= s_totalMoney %>" required>
             </div>
             <button type="submit" class="btn btn-primary w-100">Pay Now</button>
         </form>
@@ -36,7 +36,15 @@
     
     <% if (success === '1' ) { %>
         <div class="alert alert-success" style="text-align: center;">Pay success!</div>
-    <% } else if (success === '0' ) { %>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 如果你从 EJS 传入了 result 对象中的值，也需要输出它
+            document.getElementById('cartItemCount').textContent = '0';
+            document.getElementById('ItemCount').textContent = '0';
+            document.getElementById('TotalAmount').textContent = '0';
+        });
+    </script>
+    <% } else if (success==='0' ) { %>
         <div class="alert alert-danger">Pay fail, please retry!</div>
     <% } %>
 </body>

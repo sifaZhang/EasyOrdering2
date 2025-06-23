@@ -35,11 +35,11 @@
             <div class="d-flex align-items-center ms-auto text-white">
                 <!-- 总项目数和金额 -->
                 <div class="me-4 text-end nav-div">
-                    <span id="ItemCount" style="padding-right: 2px;"><%= totalNumber %></span> items
+                    <span id="ItemCount" style="padding-right: 2px;"><%= s_totalNumber %></span> items
                 </div>
 
                 <div class="me-4 text-end nav-div">
-                    Total: $<span id="TotalAmount">$<%= parseFloat(totalMoney).toFixed(2) %></span>
+                    Total: $<span id="TotalAmount"><%= parseFloat(s_totalMoney).toFixed(2) %></span>
                 </div>
 
                 <!-- 购物车图标 -->
@@ -47,7 +47,7 @@
                     <i class="bi bi-cart3"></i>
                     <!-- 可选徽标气泡 -->
                     <span id="cartItemCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        <%= totalNumber %>
+                        <%= s_totalNumber %>
                     </span>
                 </a>
             </div>

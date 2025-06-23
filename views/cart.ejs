@@ -68,8 +68,8 @@
             <button class="btn btn-sm btn-primary" type="submit" style="font-size:x-large; width: 200px; height: 60px;">Place an order</button>
         </form>
         <form action="/payment" method="GET">
-            <input name="totalMoney" type="hidden" value="<%= totalMoney %>">
-            <input name="totalNumber" type="hidden" value="<%= totalNumber %>">
+            <input name="totalMoney" type="hidden" value="<%= s_totalMoney %>">
+            <input name="totalNumber" type="hidden" value="<%= s_totalNumber %>">
             <button class="btn btn-sm btn-primary" type="submit" style="font-size:x-large; width: 200px; height: 60px;">Pay</button>
         </form>
     </div>

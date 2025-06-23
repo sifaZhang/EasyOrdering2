@@ -84,12 +84,13 @@
                                 <form action="/addItems" method="POST" class="add-form">
                                     <td style="width: 8%; text-align: center;">
                                         <input type="number" min="1" value="1" class="form-control form-control-sm"
-                                            style="width: 60px; display: inline-block; margin: 0 auto;" name="itemnumber"/>
+                                            style="width: 60px; display: inline-block; margin: 0 auto;" name="itemNumber"/>
                                     </td>
                                     <td style="width: 8%; text-align: center;">
                                         <input name="discount" type="hidden" value="<%= item.discount %>">
                                         <input name="price" type="hidden" value="<%= item.price %>">
-                                        <input name="itemname" type="hidden" value="<%= item.name %>">
+                                        <input name="itemName" type="hidden" value="<%= item.name %>">
+                                        <input name="itemId" type="hidden" value="<%= item.id %>">
                                         <button class="btn btn-sm btn-success">Add</button>
                                     </td>
                                 </form>
@@ -118,10 +119,11 @@
 
             const formData = new FormData(form);
             const data = {
-                itemname: formData.get('itemname'),
+                itemId: formData.get('itemId'),
+                itemName: formData.get('itemName'),
                 price: parseFloat(formData.get('price')),
                 discount: parseInt(formData.get('discount')),
-                itemnumber: parseInt(formData.get('itemnumber'))
+                itemNumber: parseInt(formData.get('itemNumber'))
             };
 
             fetch('/addItems', {
@@ -135,7 +137,7 @@
                         // 动态更新顶部购物车数据
                         document.getElementById('cartItemCount').textContent = result.totalNumber;
                         document.getElementById('ItemCount').textContent = result.totalNumber;
-                        document.getElementById('TotalAmount').textContent = `$${result.totalMoney.toFixed(2)}`;
+                        document.getElementById('TotalAmount').textContent = `{result.totalMoney.toFixed(2)}`;
                     } else {
                         alert('Add failed: ' + result.message);
                     }
