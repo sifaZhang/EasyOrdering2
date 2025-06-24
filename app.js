@@ -53,6 +53,7 @@ app.use((req, res, next) => {
     res.locals.s_ready = req.session.ready || 14;
     res.locals.s_totalNumber = req.session.totalNumber || 0;
     res.locals.s_totalMoney = req.session.totalMoney || 0;
+    res.locals.s_tableNumber = req.session.tableNumber || 0;
 
     next();
 });
@@ -69,13 +70,16 @@ app.use('/QRCodes', express.static(__dirname + '/public/images/QRCodes'));
 
 
 app.get('/', function (req, res) {
-    conn.query('CALL SelectTopItemsByType(?)', [5], function (error, results) {
+    const topN = 3;
+    conn.query('CALL SelectTopItemsByType(?)', [topN], function (error, results) {
         if (error) {
             return res.status(500).send('Database error (SelectTopItemsByType)');
         }
 
         res.render('home', {
             topNItemsPerType: results[0],
+            topN: topN
+
         });
     });
 });
@@ -250,8 +254,8 @@ app.get('/table/:table', (req, res) => {
                     //log in again or more than two people login
                     res.locals.s_username = req.session.username = results[0].creator;
 
-                    req.session.orderId = results[0].id;;
-                    req.session.tableNumber = results[0].tablenumber;;
+                    req.session.orderId = results[0].id;
+                    req.session.tableNumber = results[0].tablenumber;
 
                     console.log('A new Customer:', req.session.username, 'is logging in again. orderId=', 
                         req.session.orderId, 'tableNumber=', req.session.tableNumber);
@@ -352,6 +356,9 @@ app.get('/logout',(req,res) => {
     req.session.destroy();
     res.locals.s_username = null;
     res.locals.s_role = null;
+    res.locals.s_totalNumber = 0;
+    res.locals.s_totalMoney = 0;
+    res.locals.s_tableNumber = 0;
     
 	res.redirect('/');
 });

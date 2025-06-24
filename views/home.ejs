@@ -9,7 +9,7 @@
     <%- include('partials/navbarSelection.ejs') %>
 
         <div class="container-fluid">
-            <h1 class="h1-top">Top 3 ordered Items</h1>
+            <h1 class="h1-top">Top <%= topN %> ordered Items</h1>
         
             <% let currentType=null; let index = 1;%>
             <% topNItemsPerType.forEach(function(item) { %>
