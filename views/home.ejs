@@ -12,7 +12,7 @@
             <h1 class="h1-top">Top 3 ordered Items</h1>
         
             <% let currentType=null; let index = 1;%>
-            <% top3ItemsPerType.forEach(function(item) { %>
+            <% topNItemsPerType.forEach(function(item) { %>
                 <% if (item.foodtype !== currentType) { 
                     if (currentType !==null) { %>
                         </div>
@@ -35,7 +35,7 @@
                     <label style="text-align: center; margin-top: 10px;"><strong>Top <%= index %></strong></label>
                     <label style="text-align: center; margin-top: 10px;"><strong><%= item.itemname %></strong></label>
                 </div>
-                <% if (index === top3ItemsPerType.length - 1) { %>
+                <% if (index === topNItemsPerType.length - 1) { %>
                     </div>
                 <% } %>
             <% }); %>

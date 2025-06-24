@@ -69,13 +69,13 @@ app.use('/QRCodes', express.static(__dirname + '/public/images/QRCodes'));
 
 
 app.get('/', function (req, res) {
-    conn.query('SELECT * FROM top3_items_per_type', function (error, results) {
+    conn.query('CALL SelectTopItemsByType(?)', [5], function (error, results) {
         if (error) {
-            return res.status(500).send('Database error (top3_items_per_type)');
+            return res.status(500).send('Database error (SelectTopItemsByType)');
         }
 
         res.render('home', {
-            top3ItemsPerType: results,
+            topNItemsPerType: results[0],
         });
     });
 });
@@ -157,7 +157,7 @@ app.get('/cart', function (req, res) {
 });
 
 function renderOverviewMenu(req, res) {
-    conn.query('SELECT * FROM menu_info ORDER BY foodtype ASC', function (error, menuResults) {
+    conn.query('SELECT * FROM menu_info where itemAvailable = 1 ORDER BY foodtype ASC', function (error, menuResults) {
         if (error) {
             return res.status(500).send('Database error (menu_info)');
         }
