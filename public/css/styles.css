@@ -169,3 +169,72 @@ body {
   padding-top: 230px;
   /* 根据 navbar 高度微调 */
 }
+
+
+
+.contact-header {
+  text-align: center;
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.contact-header::after {
+  content: "";
+  display: block;
+  width: 100px;
+  height: 4px;
+  background: var(--accent-color);
+  margin: 2rem auto;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.contact-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.contact-card:hover {
+  transform: translateY(-5px);
+}
+
+.contact-card h1 h3 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.contact-info {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.highlight {
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+.business-hours {
+  margin-top: 3rem;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.shape-banner {
+  background: var(--primary-color);
+  color: white;
+  padding: 1.5rem;
+  text-align: center;
+  margin-top: 4rem;
+  font-size: 1.8rem;
+  letter-spacing: 1px;
+}

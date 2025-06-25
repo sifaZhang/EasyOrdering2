@@ -88,6 +88,10 @@ app.get('/login', function (req, res) {
     res.render('login');
 });
 
+app.get('/contact', function (req, res) {
+    res.render('contact');
+});
+
 app.get('/resetpwd', function (req, res) {
     res.render('resetpwd');
 });
