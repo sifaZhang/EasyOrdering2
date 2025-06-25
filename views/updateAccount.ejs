@@ -59,20 +59,20 @@
             <input type="hidden" name="userId" value="<%= id %>">
 
             <div class="d-flex userinfo-div justify-content-center" style="margin-bottom: 20px;">
-                <button class="btn btn-primary" type="submit" style=" width: 200px;">Update</button>
+                <button class="btn btn-primary" type="submit" style="width: 200px;">Update</button>
             </div>
         </form>
     </div>
-
-        <% if (success === '1') { %>
-            <div class="alert alert-success" style="text-align: center;">Update success!</div>
-        <% } else if (success === '0') { %>
-            <div class="alert alert-danger">Update fail, please retry!</div>
-        <% } %>
     
-    <div class="footer">
-        <%- include('partials/footer.ejs') %>
-    </div>
+    <% if (success==='1' ) { %>
+        <div class="alert alert-success" style="text-align: center;">Update success!</div>
+    <% } else if (success==='0' ) { %>
+        <div class="alert alert-danger">Update fail, please retry!</div>
+    <% } %>
+    
+    
+    <%- include('partials/footer.ejs') %>
+
     
     <script>
         window.addEventListener('DOMContentLoaded', function () {

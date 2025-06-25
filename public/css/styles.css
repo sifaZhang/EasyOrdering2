@@ -1,6 +1,6 @@
 .custom-navbar {
   height: 230px;
-  background-image: url('/public/images/Title.jpg');
+  background-image: url('/public/images/header.jpg');
   background-size: cover;         /* 自动缩放填充整个区域 */
   background-position: center;    /* 图片居中显示 */
   background-repeat: no-repeat;   /* 不重复平铺 */
@@ -26,7 +26,8 @@
   font-size: medium;
   font-weight: bold;
   transition: 0.3s;
-  background-color: rgba(0, 0, 0, 0.5);   /* 黑色+50%透明 */
+  background-color: rgba(0, 0, 0, 0.3);   /* 黑色+30%透明 */
+  border-radius: 5%;
 }
 
 .nav-link.nav-menu:hover {
@@ -36,7 +37,7 @@
 }
 
 .nav-div {
-  background-color: rgba(0, 0, 0, 0.5);   /* 黑色+50%透明 */
+  background-color: rgba(0, 0, 0, 0.3);   /* 黑色+30%透明 */
   margin-top: 50px;
 }
 
@@ -58,6 +59,52 @@
 .form-control::placeholder {
   color: #aaa;
 }
+
+input.form-control:focus  {
+  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.3);
+  border-color: rgba(148, 5, 40, 0.3);
+}
+
+button.btn-primary {
+  background-color: #800020;
+  border-color: #800020;
+}
+
+button.btn-primary:hover {
+  background-color: #b40531;
+  border-color: #b40531;
+}
+
+button.btn-danger {
+  background-color: #be463d;
+  border-color: #be463d;
+}
+
+button.btn-danger:hover {
+  background-color: #F44336;
+  border-color: #F44336;
+}
+
+button.btn-success {
+  background-color: #17af1c;
+  border-color: #17af1c;
+}
+
+button.btn-success:hover {
+  background-color: #26e62d;
+  border-color: #26e62d;
+}
+
+button.btn-warning {
+  background-color: #D4AF37;
+  border-color: #D4AF37;
+}
+
+button.btn-warning:hover {
+  background-color: rgb(247, 192, 14);
+  border-color: rgb(247, 192, 14);
+}
+
 
 .userinfo-div {
   margin-top: 10px; 
@@ -115,10 +162,6 @@
   font-family: 'Arial', sans-serif; 
 }
 
-.footer {
-  padding-top: 20px;
-}
-
 .category-btn.active {
   background-color: #0d6efd;
   color: white;
@@ -167,10 +210,23 @@
 
 body {
   padding-top: 230px;
-  /* 根据 navbar 高度微调 */
+  background-color:#FAF3E0;
 }
 
-
+.footer {
+  height: 200px;
+  padding-top: 10px;
+  background-image: url('/public/images/footer1.jpg');
+  background-size: cover;         /* 自动缩放填充整个区域 */
+  background-position: center;    /* 图片居中显示 */
+  background-repeat: no-repeat;   /* 不重复平铺 */
+  position:relative;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000; /* 保证在最上层 */
+  color: white;
+}
 
 .contact-header {
   text-align: center;

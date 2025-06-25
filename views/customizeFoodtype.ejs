@@ -96,7 +96,7 @@
         </div>
         
         <!-- new Foodtype -->
-        <div id="addFoodtypeForm" style="display: none; align-items: center; justify-content: center;" >
+        <div id="addFoodtypeForm" style="display: none; align-items: center; justify-content: center; margin-bottom: 10px;" >
             <form action="/addFoodtype" method="POST">
                 <div class="d-flex userinfo-div">
                     <label class="form-label me-3">Name</label>
@@ -106,9 +106,9 @@
             </form>
         </div>
 
-        <div class="footer">
-            <%- include('partials/footer.ejs') %>
-        </div>
+        
+        <%- include('partials/footer.ejs') %>
+
 
         <script>
             const addFoodtypeBtn = document.getElementById('addFoodtypeBtn');
