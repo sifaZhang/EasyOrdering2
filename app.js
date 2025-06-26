@@ -49,11 +49,18 @@ app.use(session({
 app.use((req, res, next) => {
     res.locals.s_username = req.session.username || null;
     res.locals.s_role = req.session.role || null;
-    res.locals.s_compeleted = req.session.completed || 15;
-    res.locals.s_ready = req.session.ready || 14;
+
+    res.locals.s_orderId = req.session.orderId || 0;
     res.locals.s_totalNumber = req.session.totalNumber || 0;
     res.locals.s_totalMoney = req.session.totalMoney || 0;
     res.locals.s_tableNumber = req.session.tableNumber || 0;
+
+    res.locals.s_compeleted = req.session.completed || 15;
+    res.locals.s_ready = req.session.ready || 14;
+    res.locals.s_cancelled = req.session.cancelled || 17;
+    res.locals.s_pending = req.session.pending || 11;
+    res.locals.s_preparing = req.session.preparing || 13;
+    res.locals.s_confirmed = req.session.confirmed || 12;
 
     next();
 });
@@ -225,22 +232,22 @@ app.get('/table/:table', (req, res) => {
             result.forEach(element => {
                 switch (element.status) {
                     case 'pending':
-                        req.session.pending = element.id;
+                        res.locals.s_pending = req.session.pending = element.id;
                         break;
                     case 'confirmed':
-                        req.session.confirmed = element.id;
+                        res.locals.s_confirmed = req.session.confirmed = element.id;
                         break;
                     case 'preparing':
-                        req.session.preparing = element.id;
+                        res.locals.s_preparing = req.session.preparing = element.id;
                         break;
                     case 'ready':
-                        req.session.ready = element.id;
+                        res.locals.s_ready = req.session.ready = element.id;
                         break;
                     case 'completed':
-                        req.session.completed = element.id;
+                        res.locals.s_completed = req.session.completed = element.id;
                         break;
                     case 'cancelled':
-                        req.session.cancelled = element.id;
+                        res.locals.s_cancelled = req.session.cancelled = element.id;
                         break;
                     default:
                         break;
@@ -393,7 +400,7 @@ function addItem2Databse(req, res) {
     const orderTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 
     conn.query('SELECT * from order_items where orderid = ? and itemid = ? and status = ?',
-        [req.session.orderId, itemId, req.session.pending], (err, result) => {
+        [res.locals.s_orderId, itemId, res.locals.s_pending], (err, result) => {
             if (err) {
                 return res.status(500).send('Failed to save new items to database.');
             } else if (result.length > 0) {
@@ -412,7 +419,7 @@ function addItem2Databse(req, res) {
             } else {
                 // 没有原来项，直接插入
                 const insertSQL = 'INSERT INTO order_items (itemid, itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?, ?)';
-                conn.query(insertSQL, [itemId, itemName, price, discount, itemNumber, req.session.orderId, req.session.pending], (err3, result3) => {
+                conn.query(insertSQL, [itemId, itemName, price, discount, itemNumber, res.locals.s_orderId, res.locals.s_pending], (err3, result3) => {
                     if (err3) {
                         return res.status(500).send('Failed to insert item.');
                     }
@@ -467,7 +474,10 @@ app.post('/placeOrder', function (req, res) {
 app.post('/addItems', function (req, res) {
     const orderTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 
-    if (req.session.orderId === 0) {
+    if (req.session.orderId) {
+        addItem2Databse(req, res);
+    }
+    else {
         //create a new order
         const sql = 'INSERT INTO orders (creator, ordertime, tablenumber, status) VALUES (?, ?, ?, ?)';
         conn.query(sql, [res.locals.s_username, orderTime, req.session.tableNumber, req.session.pending], (err, result) => {
@@ -475,14 +485,11 @@ app.post('/addItems', function (req, res) {
                 console.error('Database insert error:', err);
                 return res.status(500).json({success: false, message: 'Failed to save a new order to database.'});
             } else {
-                req.session.orderId = result.insertId;
+                res.locals.s_orderId = req.session.orderId = result.insertId;
 
                 addItem2Databse(req, res);
             }
         });
-    }
-    else {
-        addItem2Databse(req, res);
     }
 });
 

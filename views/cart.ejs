@@ -65,7 +65,7 @@
     </div>
 
     <% if (orderItems && orderItems.length > 0) { %>
-    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
+    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px; margin-bottom: 10px;">
         <form action="/placeOrder" method="POST" onsubmit="return confirm('Are you sure you want to place the order');">
             <input name="orderId" type="hidden" value="<%= orderItems[0].orderid %>">      
             <button class="btn btn-sm btn-primary" type="submit" style="font-size:x-large; width: 200px; height: 60px;">Place an order</button>
@@ -82,7 +82,7 @@
         </div>
     <% } %>
 
-    
+
     <%- include('partials/footer.ejs') %>
 
 

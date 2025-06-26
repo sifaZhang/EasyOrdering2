@@ -137,7 +137,7 @@
                         // 动态更新顶部购物车数据
                         document.getElementById('cartItemCount').textContent = result.totalNumber;
                         document.getElementById('ItemCount').textContent = result.totalNumber;
-                        document.getElementById('TotalAmount').textContent = `{result.totalMoney.toFixed(2)}`;
+                        document.getElementById('TotalAmount').textContent = result.totalMoney.toFixed(2);
                     } else {
                         alert('Add failed: ' + result.message);
                     }
