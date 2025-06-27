@@ -103,6 +103,49 @@ app.get('/resetpwd', function (req, res) {
     res.render('resetpwd');
 });
 
+app.get('/ordersForHis', function (req, res) {
+    res.render('ordersForHis');
+});
+
+app.get('/ordersForToday', function (req, res) {
+    const now = new Date();
+    const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    conn.query('SELECT * FROM orders_info where ordertime >= ? and ordertime <= ? order by status, tablenumber, id ASC', 
+        [startTime, endTime], function (error, results) {
+            if (error) {
+                return res.status(500).send('Database error (orders_info)', error);
+            }
+
+            results.forEach(element => {
+                element.ordertime = element.ordertime.toLocaleString('en-NZ', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+                element.finishtime = element.finishtime.toLocaleString('en-NZ', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+            });
+
+            const orderIds = results.map(order => order.id);
+            if (orderIds.length === 0) {
+                // No orders — skip second query
+                return res.render('ordersForToday', {
+                    orders: [],
+                    items: []
+                });
+            }
+            else {
+                conn.query('SELECT * FROM order_items_info where orderid in (?)',
+                    [orderIds], function (error2, results2) {
+                        if (error2) {
+                            return res.status(500).send('Database error (order_items)');
+                        }
+
+                        res.render('ordersForToday', {
+                            orders: results,
+                            items: results2
+                        });
+                    });
+            }
+    });
+});
+
 app.get('/allAccounts', function (req, res) {
     conn.query('SELECT * FROM users_info', function (error, results) {
         if (error) {
@@ -400,34 +443,42 @@ function addItem2Databse(req, res) {
     let itemNumber = parseInt(req.body.itemNumber);
     const orderTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 
-    conn.query('SELECT * from order_items where orderid = ? and itemid = ? and status = ?',
-        [res.locals.s_orderId, itemId, res.locals.s_pending], (err, result) => {
-            if (err) {
-                return res.status(500).send('Failed to save new items to database.');
-            } else if (result.length > 0) {
-                itemNumber += result[0].itemnumber;
-                const orderItemId = result[0].id;
+    const sql = 'UPDATE orders SET status = ? where id = ?';
+    conn.query(sql, [res.locals.s_pending, orderId], (err, result) => {
+        if (err) {
+            console.error('Database update error:', err);
+            return res.status(500).json({ success: false, message: 'Failed to update database.' });
+        } 
+    
+        conn.query('SELECT * from order_items where orderid = ? and itemid = ? and status = ?',
+            [res.locals.s_orderId, itemId, res.locals.s_pending], (err, result) => {
+                if (err) {
+                    return res.status(500).send('Failed to save new items to database.');
+                } else if (result.length > 0) {
+                    itemNumber += result[0].itemnumber;
+                    const orderItemId = result[0].id;
 
-                // 也可以直接更新
-                const updateSQL = 'UPDATE order_items SET itemnumber = ? WHERE id = ? ';
-                conn.query(updateSQL, [itemNumber, orderItemId], (err2, result2) => {
-                    if (err2) {
-                        return res.status(500).send('Failed to update item.');
-                    }
+                    // 也可以直接更新
+                    const updateSQL = 'UPDATE order_items SET itemnumber = ? WHERE id = ? ';
+                    conn.query(updateSQL, [itemNumber, orderItemId], (err2, result2) => {
+                        if (err2) {
+                            return res.status(500).send('Failed to update item.');
+                        }
 
-                    return sendStatistics(req, res);
-                });
-            } else {
-                // 没有原来项，直接插入
-                const insertSQL = 'INSERT INTO order_items (itemid, itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?, ?)';
-                conn.query(insertSQL, [itemId, itemName, price, discount, itemNumber, res.locals.s_orderId, res.locals.s_pending], (err3, result3) => {
-                    if (err3) {
-                        return res.status(500).send('Failed to insert item.');
-                    }
+                        return sendStatistics(req, res);
+                    });
+                } else {
+                    // 没有原来项，直接插入
+                    const insertSQL = 'INSERT INTO order_items (itemid, itemname, price, discount, itemnumber, orderid, status) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                    conn.query(insertSQL, [itemId, itemName, price, discount, itemNumber, res.locals.s_orderId, res.locals.s_pending], (err3, result3) => {
+                        if (err3) {
+                            return res.status(500).send('Failed to insert item.');
+                        }
 
-                    return sendStatistics(req, res);
-                });
-            }
+                        return sendStatistics(req, res);
+                    });
+                }
+        });
     });
 }
 
@@ -470,6 +521,60 @@ app.post('/placeOrder', function (req, res) {
     });
 });
 
+app.post('/receiveOrder', function (req, res) {
+    const orderId = req.body.orderId;
+
+    if (isNaN(orderId)) {
+        return res.status(500).json({success: false, message: 'Invalid orderId'});
+    }
+
+    const sql = 'UPDATE orders SET status = ? where id = ?';
+    conn.query(sql, [res.locals.s_preparing, orderId], (err, result) => {
+        if (err) {
+            console.error('Database update error:', err);
+            return res.status(500).json({ success: false, message: 'Failed to update database.' });
+        } else {
+            res.redirect('/ordersForToday');
+        }
+    });
+});
+
+app.post('/finishOrder', function (req, res) {
+    const orderId = req.body.orderId;
+
+    if (isNaN(orderId)) {
+        return res.status(500).json({success: false, message: 'Invalid orderId'});
+    }
+
+    const sql = 'UPDATE orders SET status = ? where id = ?';
+    conn.query(sql, [res.locals.s_completed, orderId], (err, result) => {
+        if (err) {
+            console.error('Database update error:', err);
+            return res.status(500).json({ success: false, message: 'Failed to update database.' });
+        } else {
+            res.redirect('/ordersForToday');
+        }
+    });
+});
+
+app.post('/cancelOrder', function (req, res) {
+    const orderId = req.body.orderId;
+
+    if (isNaN(orderId)) {
+        return res.status(500).json({success: false, message: 'Invalid orderId'});
+    }
+
+    const sql = 'UPDATE orders SET status = ? where id = ?';
+    conn.query(sql, [res.locals.s_cancelled, orderId], (err, result) => {
+        if (err) {
+            console.error('Database update error:', err);
+            return res.status(500).json({ success: false, message: 'Failed to update database.' });
+        } else {
+            res.redirect('/ordersForToday');
+        }
+    });
+});
+
 
 //Add items into order
 app.post('/addItems', function (req, res) {
@@ -500,6 +605,138 @@ app.post('/addItems', function (req, res) {
     }
 });
 
+app.post('/ReadyItem', function (req, res) {
+    const itemId = parseInt(req.body.itemId);
+    const orderId = parseInt(req.body.orderId);
+
+    if (isNaN(itemId) || isNaN(orderId)) {
+        return res.status(400).json({
+                success: false,
+                message: 'Invalid itemId or orderId'});
+    }
+
+    conn.query('update order_items SET status = ? WHERE id = ?', [res.locals.s_ready, itemId], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                success: false,
+                message: 'Database error (order_items)'});
+        }
+
+        conn.query('SELECT * FROM order_items_info WHERE orderid = ?', [orderId], function (error, results) {
+            if (error) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Database error (order_items_info)'
+                });
+            }
+
+            const newStatus = caculateStatus(results);
+            conn.query('update orders SET status = ? WHERE id = ?', [newStatus, orderId], function (err, result) {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Database error (orders)'
+                    });
+                }
+
+                res.redirect('/ordersForToday');
+            });
+        });
+    });
+});
+
+app.post('/deleteItemByR', function (req, res) {
+    const itemId = parseInt(req.body.itemId);
+    const orderId = parseInt(req.body.orderId);
+
+    if (isNaN(itemId) || isNaN(orderId)) {
+        return res.status(400).json({
+                success: false,
+                message: 'Invalid itemId or orderId'});
+    }
+
+    conn.query('delete order_items  WHERE id = ?', [itemId], function (err, result) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                success: false,
+                message: 'Database error (order_items)'});
+        }
+
+        conn.query('SELECT * FROM order_items_info WHERE orderid = ?', [orderId], function (error, results) {
+            if (error) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Database error (order_items_info)'
+                });
+            }
+
+            const newStatus = caculateStatus(results);
+            conn.query('update orders SET status = ? WHERE id = ?', [newStatus, orderId], function (err, result) {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Database error (orders)'
+                    });
+                }
+
+                res.redirect('/ordersForToday');
+            });
+        });
+    });
+});
+
+function caculateStatus(results) {
+    let newStatus = res.locals.s_pending;
+    let pending = 0;
+    let confirmed = 0;
+    let preparing = 0;
+    let ready = 0;
+    let completed = 0;
+    let cancelled = 0;
+    array.forEach(element => {
+        switch (element.status) {
+            case res.locals.s_pending:
+                pending++;
+                break;
+            case res.locals.s_confirmed:
+                confirmed++;
+                break;
+            case res.locals.s_preparing:
+                preparing++;
+                break;
+            case res.locals.s_ready:
+                ready++;
+                break;
+            case res.locals.s_completed:
+                completed++;
+                break;
+            case res.locals.s_cancelled:
+                cancelled++;
+                break;
+        }
+    });
+
+    if ( pending > 0 ) {
+        newStatus = res.locals.s_pending;
+    } else if ( confirmed > 0 ) {
+        newStatus = res.locals.s_confirmed;
+    } else if ( preparing > 0 ) {
+        newStatus = res.locals.s_preparing;
+    } else if ( ready > 0 ) {
+        newStatus = res.locals.s_ready;
+    } else if ( completed > 0 ) {
+        newStatus = res.locals.s_completed;
+    } else {
+        newStatus = res.locals.s_cancelled;
+    }
+
+    return newStatus;
+}
+
 app.post('/deleteItem', function (req, res) {
     const itemId = parseInt(req.body.itemId);
 
@@ -525,20 +762,31 @@ app.post('/deleteItem', function (req, res) {
                 });
             }
 
-            conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
-                [res.locals.s_orderId, res.locals.s_pending], function (error3, statisticsResults) {
-                    if (error3) {
-                        return res.status(500).send('Database error (statisticsResults)');
-                    }
-                    else if (statisticsResults.length > 0) {
-                        res.locals.s_totalMoney = req.session.totalMoney = statisticsResults[0].total_price || 0;
-                        res.locals.s_totalNumber = req.session.totalNumber = statisticsResults[0].total_number || 0;
-                        res.json({
-                            success: true,
-                            orderItems: results
-                        });
-                    }
+            const newStatus = caculateStatus(results);
+            conn.query('update orders SET status = ? WHERE id = ?', [newStatus, res.locals.s_orderId], function (err, result) {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Database error (orders)'
+                    });
+                }
+
+                conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
+                    [res.locals.s_orderId, res.locals.s_pending], function (error3, statisticsResults) {
+                        if (error3) {
+                            return res.status(500).send('Database error (statisticsResults)');
+                        }
+                        else if (statisticsResults.length > 0) {
+                            res.locals.s_totalMoney = req.session.totalMoney = statisticsResults[0].total_price || 0;
+                            res.locals.s_totalNumber = req.session.totalNumber = statisticsResults[0].total_number || 0;
+                            res.json({
+                                success: true,
+                                orderItems: results
+                            });
+                        }
                 });
+            });
         });
     });
 });

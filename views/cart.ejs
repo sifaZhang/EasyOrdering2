@@ -33,18 +33,21 @@
                         <td style="width: 25%;">
                             <%= item.itemname %>
                         </td>
-                        <td style="width: 15%;">
+                        <td style="width: 10%;">
                             $<%= parseFloat(item.price).toFixed(2) %>
                         </td>
                         <td style="width: 15%; text-align: center;">
                             <% if (item.discount> 0) { %>
-                                <div style="color: red; font-size: 13px; font-weight: bold; text-align: center;">
+                                <div style="color: brown; font-size: 13px; font-weight: bold; text-align: center;">
                                     <%= item.discount %>% OFF
                                 </div>
                             <% } %>
                         </td>
-                        <td style="width: 15%; text-align: center;">
-                             <%= item.itemnumber %>
+                        <td style="width: 10%; text-align: center;">
+                            <%= parseFloat(item.curprice).toFixed(2) %> %>
+                        </td>
+                        <td style="width: 10%; text-align: center;">
+                            <%= item.itemnumber %>
                         </td>
                         <td style="width: 15%;">
                             <%= item.statusname%>
