@@ -28,7 +28,7 @@
             </div>
             <div class="mb-3">
                 <label for="amount" class="form-label">Amount (NZD)</label>
-                <input type="number" class="form-control" id="amount" name="amount" value="<%= s_totalMoney %>" required>
+                <input type="number" class="form-control" id="amount" name="amount" value="<%= parseFloat(s_totalMoney).toFixed(2) %>" required>
             </div>
             <button type="submit" class="btn btn-primary w-100">Pay Now</button>
         </form>

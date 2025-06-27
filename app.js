@@ -55,7 +55,7 @@ app.use((req, res, next) => {
     res.locals.s_totalMoney = req.session.totalMoney || 0;
     res.locals.s_tableNumber = req.session.tableNumber || 0;
 
-    res.locals.s_compeleted = req.session.completed || 15;
+    res.locals.s_completed = req.session.completed || 15;
     res.locals.s_ready = req.session.ready || 14;
     res.locals.s_cancelled = req.session.cancelled || 17;
     res.locals.s_pending = req.session.pending || 11;
@@ -159,7 +159,7 @@ app.get('/qrcode', function (req, res) {
 });
 
 app.get('/cart', function (req, res) {
-    conn.query('SELECT * FROM order_items_info WHERE orderid = ?', [req.session.orderId], function (error, results) {
+    conn.query('SELECT * FROM order_items_info WHERE orderid = ?', [res.locals.s_orderId], function (error, results) {
         if (error) {
             return res.status(500).send('Database error (order_items_info)');
         }
@@ -183,9 +183,9 @@ function renderOverviewMenu(req, res) {
                 return res.status(500).send('Database error (food_type)');
             }
 
-            if (String(req.session.orderId) !== '0') {
+            if (String(res.locals.s_orderId) !== '0') {
                 conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status < ?',
-                    [req.session.orderId, req.session.completed], function (error3, statisticsResults) {
+                    [res.locals.s_orderId, res.locals.s_completed], function (error3, statisticsResults) {
                         if (error3) {
                             return res.status(500).send('Database error (statisticsResults)');
                         }
@@ -212,6 +212,7 @@ function renderOverviewMenu(req, res) {
 }
 
 app.get('/overviewMenu', renderOverviewMenu);
+
 
 // GET /table/8
 app.get('/table/:table', (req, res) => {
@@ -256,7 +257,7 @@ app.get('/table/:table', (req, res) => {
 
             //check whether the customer has existed
             const query = 'SELECT * FROM orders WHERE tablenumber = ? and status < ?';
-            conn.query(query, [tableNumber, req.session.completed], function (err, results) {
+            conn.query(query, [tableNumber, res.locals.s_completed], function (err, results) {
                 if (err) {
                     console.error(err);
                     return res.status(500).send('Database error');
@@ -265,11 +266,11 @@ app.get('/table/:table', (req, res) => {
                     //log in again or more than two people login
                     res.locals.s_username = req.session.username = results[0].creator;
 
-                    req.session.orderId = results[0].id;
-                    req.session.tableNumber = results[0].tablenumber;
+                    res.locals.s_orderId = req.session.orderId = results[0].id;
+                    res.locals.s_tableNumber = req.session.tableNumber = results[0].tablenumber;
 
-                    console.log('A new Customer:', req.session.username, 'is logging in again. orderId=', 
-                        req.session.orderId, 'tableNumber=', req.session.tableNumber);
+                    console.log('A new Customer:', res.locals.s_username, 'is logging in again. orderId=', 
+                        res.locals.s_orderId, 'tableNumber=', res.locals.s_tableNumber);
 
                     // 调用封装好的函数
                     renderOverviewMenu(req, res);
@@ -278,10 +279,10 @@ app.get('/table/:table', (req, res) => {
                     //New customer
                     res.locals.s_username = req.session.username = Date.now().toString() + Math.floor(Math.random() * 1000);
 
-                    req.session.orderId = 0;
-                    req.session.tableNumber = tableNumber;
+                    res.locals.s_orderId = req.session.orderId = 0;
+                    res.locals.s_tableNumber = req.session.tableNumber = tableNumber;
 
-                    console.log('A new Customer', req.session.username, 'is logging in.');
+                    console.log('A new Customer', res.locals.s_username, 'is logging in.');
 
                     // 调用封装好的函数
                     renderOverviewMenu(req, res);
@@ -376,17 +377,17 @@ app.get('/logout',(req,res) => {
 
 function sendStatistics(req, res) {
     conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
-        [req.session.orderId, req.session.pending], function (error, results) {
+        [res.locals.s_orderId, res.locals.s_pending], function (error, results) {
             if (error) {
                 return res.status(500).send('Failed to calculate statistics.');
             }
 
-            req.session.totalMoney = results[0].total_price || 0;
-            req.session.totalNumber = results[0].total_number || 0;
+            res.locals.s_totalMoney = req.session.totalMoney = results[0].total_price || 0;
+            res.locals.s_tableNumber = req.session.totalNumber = results[0].total_number || 0;
             res.json({
                 success: true,
-                totalMoney: req.session.totalMoney,
-                totalNumber: req.session.totalNumber
+                totalMoney: res.locals.s_totalMoney,
+                totalNumber: res.locals.s_totalNumber
             });
         });
 }
@@ -431,7 +432,7 @@ function addItem2Databse(req, res) {
 }
 
 app.post('/pay', function (req, res) {
-    const orderId = req.session.orderId;
+    const orderId = res.locals.s_orderId;
     const finishtime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 
     if (isNaN(orderId)) {
@@ -439,7 +440,7 @@ app.post('/pay', function (req, res) {
     }
 
     const sql = 'UPDATE orders SET status = ?, finishtime = ? where id = ?';
-    conn.query(sql, [req.session.completed, finishtime, orderId], (err, result) => {
+    conn.query(sql, [res.locals.s_completed, finishtime, orderId], (err, result) => {
         if (err) {
             console.error('Database update error:', err);
             return res.status(500).json({ success: false, message: 'Failed to update database.' });
@@ -459,7 +460,7 @@ app.post('/placeOrder', function (req, res) {
     }
 
     const sql = 'UPDATE orders SET status = ? where id = ?';
-    conn.query(sql, [req.session.confirmed, orderId], (err, result) => {
+    conn.query(sql, [res.locals.s_confirmed, orderId], (err, result) => {
         if (err) {
             console.error('Database update error:', err);
             return res.status(500).json({ success: false, message: 'Failed to update database.' });
@@ -473,14 +474,20 @@ app.post('/placeOrder', function (req, res) {
 //Add items into order
 app.post('/addItems', function (req, res) {
     const orderTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
+    const tableNumber = parseInt(req.body.tableNumber);
 
-    if (req.session.orderId) {
+    //if tableNumber is not null, this order is made by recepitonist
+    if (!isNaN(tableNumber)) {
+        res.locals.s_tableNumber = req.session.tableNumber = tableNumber;
+    }
+
+    if (res.locals.s_orderId) {
         addItem2Databse(req, res);
     }
     else {
         //create a new order
         const sql = 'INSERT INTO orders (creator, ordertime, tablenumber, status) VALUES (?, ?, ?, ?)';
-        conn.query(sql, [res.locals.s_username, orderTime, req.session.tableNumber, req.session.pending], (err, result) => {
+        conn.query(sql, [res.locals.s_username, orderTime, res.locals.s_tableNumber, res.locals.s_pending], (err, result) => {
             if (err) {
                 console.error('Database insert error:', err);
                 return res.status(500).json({success: false, message: 'Failed to save a new order to database.'});
@@ -510,7 +517,7 @@ app.post('/deleteItem', function (req, res) {
                 message: 'Database error (order_items)'});
         }
 
-        conn.query('SELECT * FROM order_items_info WHERE orderid = ?', [req.session.orderId], function (error, results) {
+        conn.query('SELECT * FROM order_items_info WHERE orderid = ?', [res.locals.s_orderId], function (error, results) {
             if (error) {
                 return res.status(500).json({
                     success: false,
@@ -519,13 +526,13 @@ app.post('/deleteItem', function (req, res) {
             }
 
             conn.query('SELECT SUM(price * itemnumber * (100 - discount) / 100) AS total_price, SUM(itemnumber) AS total_number FROM order_items WHERE orderid = ? and status = ?',
-                [req.session.orderId, req.session.pending], function (error3, statisticsResults) {
+                [res.locals.s_orderId, res.locals.s_pending], function (error3, statisticsResults) {
                     if (error3) {
                         return res.status(500).send('Database error (statisticsResults)');
                     }
                     else if (statisticsResults.length > 0) {
-                        req.session.totalMoney = statisticsResults[0].total_price || 0;
-                        req.session.totalNumber = statisticsResults[0].total_number || 0;
+                        res.locals.s_totalMoney = req.session.totalMoney = statisticsResults[0].total_price || 0;
+                        res.locals.s_totalNumber = req.session.totalNumber = statisticsResults[0].total_number || 0;
                         res.json({
                             success: true,
                             orderItems: results

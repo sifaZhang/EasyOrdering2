@@ -8,10 +8,18 @@
     <%- include('partials/navbarSelection.ejs') %>
 
     <!-- Title -->
+    
     <h3 class="text-center mb-4" style="margin-top: 20px;">Today's menu</h3>
+    
+    <% if( s_role === 'Receptionist' ) { %>
+        <div style="text-align: right; margin-right: 10px;">
+            <label>Table: </label>
+            <input type="number" min="1" id="tableNumber">
+        </div>
+    <% } %>
 
     <% foodtypes.forEach(function(foodtype) { %>
-        <h5 class="text-left" style="margin-left: 20px; margin-top: 40px; margin-bottom: 5px;">
+        <h5 class="text-left" style="margin-left: 20px; margin-top: 10px; margin-bottom: 5px;">
             <%= foodtype.name %>
         </h5>
     
@@ -31,6 +39,7 @@
                 </thead>
                 <tbody>
                     <% menu.forEach(function(item) {  if(String(item.foodtype) === String(foodtype.id)) { %>
+                        <form action="/addItems" method="POST" class="add-form">
                         <tr>
                             <td style="width: 15%; aspect-ratio: 1 / 1; vertical-align: middle; text-align: center;position:relative;">
                                 <% if (item.discount> 0) { %>
@@ -81,21 +90,20 @@
                                 <% } %>
                             </td>
                             <% if (s_role==='Customer' || s_role==='Receptionist' ) { %>
-                                <form action="/addItems" method="POST" class="add-form">
-                                    <td style="width: 8%; text-align: center;">
-                                        <input type="number" min="1" value="1" class="form-control form-control-sm"
-                                            style="width: 60px; display: inline-block; margin: 0 auto;" name="itemNumber"/>
-                                    </td>
-                                    <td style="width: 8%; text-align: center;">
-                                        <input name="discount" type="hidden" value="<%= item.discount %>">
-                                        <input name="price" type="hidden" value="<%= item.price %>">
-                                        <input name="itemName" type="hidden" value="<%= item.name %>">
-                                        <input name="itemId" type="hidden" value="<%= item.id %>">
-                                        <button class="btn btn-sm btn-success">Add</button>
-                                    </td>
-                                </form>
+                                <td style="width: 8%; text-align: center;">
+                                    <input type="number" min="1" value="1" class="form-control form-control-sm"
+                                        style="width: 60px; display: inline-block; margin: 0 auto;" name="itemNumber" />
+                                </td>
+                                <td style="width: 8%; text-align: center;">
+                                    <input name="discount" type="hidden" value="<%= item.discount %>">
+                                    <input name="price" type="hidden" value="<%= item.price %>">
+                                    <input name="itemName" type="hidden" value="<%= item.name %>">
+                                    <input name="itemId" type="hidden" value="<%= item.id %>">
+                                    <button class="btn btn-sm btn-success">Add</button>
+                                </td>
                             <% } %>
                         </tr>
+                        </form>
                         <% } %>
                     <% }); %>
                 </tbody>
@@ -113,38 +121,53 @@
     <%- include('partials/imageZoom.ejs') %>
     
 <script>
-    document.querySelectorAll('.add-form').forEach(form => {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault(); // 阻止表单提交刷新页面
+    const s_role = "<%= s_role || '' %>";
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.add-form').forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
 
-            const formData = new FormData(form);
-            const data = {
-                itemId: formData.get('itemId'),
-                itemName: formData.get('itemName'),
-                price: parseFloat(formData.get('price')),
-                discount: parseInt(formData.get('discount')),
-                itemNumber: parseInt(formData.get('itemNumber'))
-            };
-
-            fetch('/addItems', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-                .then(res => res.json())
-                .then(result => {
-                    if (result.success) {
-                        // 动态更新顶部购物车数据
-                        document.getElementById('cartItemCount').textContent = result.totalNumber;
-                        document.getElementById('ItemCount').textContent = result.totalNumber;
-                        document.getElementById('TotalAmount').textContent = result.totalMoney.toFixed(2);
-                    } else {
-                        alert('Add failed: ' + result.message);
+                console.log('tableNumber element:', document.getElementById('tableNumber'));
+                let tableNumberT;
+                if (s_role === 'Receptionist') {
+                    tableNumberT = document.getElementById('tableNumber').value;
+                    console.log('tableNumberT', tableNumberT);
+                    if (!tableNumberT) {
+                        alert('Please input table first.');
+                        return;
                     }
+                }
+                
+                const formData = new FormData(form);
+                const data = {
+                    itemId: formData.get('itemId'),
+                    itemName: formData.get('itemName'),
+                    price: parseFloat(formData.get('price')),
+                    discount: parseInt(formData.get('discount')),
+                    itemNumber: parseInt(formData.get('itemNumber')),
+                    tableNumber: tableNumberT
+                };
+
+                fetch('/addItems', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
                 })
-                .catch(err => {
-                    console.error('Fetch addItems error:', err);
-                });
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            // 动态更新顶部购物车数据
+                            document.getElementById('cartItemCount').textContent = result.totalNumber;
+                            document.getElementById('ItemCount').textContent = result.totalNumber;
+                            document.getElementById('TotalAmount').textContent = result.totalMoney.toFixed(2);
+                        } else {
+                            alert('Add failed: ' + result.message);
+                        }
+                    })
+                    .catch(err => {
+                        alert('Failed to connect to server.');
+                    });
+            });
         });
     });
 </script>
