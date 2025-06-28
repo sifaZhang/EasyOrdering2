@@ -8,6 +8,7 @@
 <body>
     <%- include('partials/navbarSelection.ejs') %>
 
+    <div class="main-content">
         <div class="container-fluid">
             <h1 class="h1-top">Top <%= topN %> ordered Items</h1>
         
@@ -41,8 +42,8 @@
             <% }); %>
         </div>
 
-    <%- include('partials/imageZoomHolder.ejs') %>
-    
+        <%- include('partials/imageZoomHolder.ejs') %>
+    </div>
     
     <%- include('partials/footer.ejs') %>
 

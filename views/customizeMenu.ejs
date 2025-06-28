@@ -7,112 +7,115 @@
 <body>
     <%- include('partials/navbarSelection.ejs') %>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- 左侧分类改进：用Card + List group -->
-            <div class="col-md-3 border-end p-2">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-dark text-white">Menu Categories</div>
-                    <ul class="list-group list-group-flush" id="categoryList">
-                        <% foodtypes.forEach(function(category, index) { %>
-                            <li class="list-group-item category-btn <%= String(category.id) === String(foodTypeId) ? 'active' : '' %>"
-                                data-category-id="<%= category.id %>" style="cursor: pointer;">
-                                <%= category.name %>
-                            </li>       
+    <div class="main-content">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- 左侧分类改进：用Card + List group -->
+                <div class="col-md-3 border-end p-2">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-dark text-white">Menu Categories</div>
+                        <ul class="list-group list-group-flush" id="categoryList">
+                            <% foodtypes.forEach(function(category, index) { %>
+                                <li class="list-group-item category-btn <%= String(category.id) === String(foodTypeId) ? 'active' : '' %>"
+                                    data-category-id="<%= category.id %>" style="cursor: pointer;">
+                                    <%= category.name %>
+                                </li>
                             <% }); %>
-                    </ul>
-                </div>
-            </div>
-    
-            <!-- 右侧菜单项 -->
-            <div class="col-md-9 p-2">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <span>Menu Items</span>
-                        <button class="btn btn-light btn-sm" onclick="showAddMenuItemForm()">+ Add New Item</button>
-                    </div>
-                    <div class="card-body" id="menuItemsContainer">
-                        <p class="text-muted">Please select one category!</p>
+                        </ul>
                     </div>
                 </div>
-            </div>
-
-        </div>
-    </div>
-
-    <%- include('partials/imageZoomHolder.ejs') %>
-
-    <!-- 弹出表单 Modal -->
-    <div class="modal fade" id="MenuItemModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <form id="formMenuItem" action="/addMenuItem" method="POST" enctype="multipart/form-data">
-                    <div class="modal-header position-relative">
-                        <h5 id="modalTitle" class="modal-title position-absolute top-50 start-50 translate-middle text-center w-100">
-                            Add New Menu Item
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
-                            style="z-index: 10;"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Image</label>
-                            <!-- 图片预览 -->
-                            <img id="previewImage" src="" alt="Preview" class="img-thumbnail mb-2" style="max-width: 150px; display: none;">
-                            <!-- 文件输入 -->
-                            <input id="image" name="image" type="file" accept="image/*" class="form-control">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input id="itemName" name="itemName" type="text" class="form-control" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea id="description" name="description" class="form-control"></textarea>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label id="labelFoodtype" class="form-label" style="display: none;">Food type</label>
-                            <select id="foodtype" style="display: none" name="foodtype" class="form-select me-3" required>
-                                <% foodtypes.forEach(function(category, index) { %>
-                                     <option value=<%= category.id %>>
-                                        <%= category.name %>
-                                    </option>
-                                <% }); %>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Price($)</label>
-                            <input id="price" name="price" type="number" step="0.01" class="form-control" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label id="labelAvailable" class="form-label" style="display: none;">Available</label>
-                            <select id="available" style="display: none" name="available" class="form-select me-3" required>
-                                <option value=1>True</option>
-                                <option value=0>False</option>
-                            </select>
-                        </div>
     
-                        <div class="mb-3">
-                            <label class="form-label">Discount(%)</label>
-                            <input id="discount" name="discount" type="number"  min="0" max="100" step="1" class="form-control" value="0" required>
+                <!-- 右侧菜单项 -->
+                <div class="col-md-9 p-2">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <span>Menu Items</span>
+                            <button class="btn btn-light btn-sm" onclick="showAddMenuItemForm()">+ Add New Item</button>
                         </div>
-    
-                         <input id="menuId" type="hidden" name="menuId"/>
+                        <div class="card-body" id="menuItemsContainer">
+                            <p class="text-muted">Please select one category!</p>
+                        </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
+
+        <%- include('partials/imageZoomHolder.ejs') %>
+
+        <!-- 弹出表单 Modal -->
+        <div class="modal fade" id="MenuItemModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <form id="formMenuItem" action="/addMenuItem" method="POST" enctype="multipart/form-data">
+                        <div class="modal-header position-relative">
+                            <h5 id="modalTitle"
+                                class="modal-title position-absolute top-50 start-50 translate-middle text-center w-100">
+                                Add New Menu Item
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                                style="z-index: 10;"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Image</label>
+                                <!-- 图片预览 -->
+                                <img id="previewImage" src="" alt="Preview" class="img-thumbnail mb-2"
+                                    style="max-width: 150px; display: none;">
+                                <!-- 文件输入 -->
+                                <input id="image" name="image" type="file" accept="image/*" class="form-control">
+                            </div>
+        
+                            <div class="mb-3">
+                                <label class="form-label">Name</label>
+                                <input id="itemName" name="itemName" type="text" class="form-control" required>
+                            </div>
+        
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea id="description" name="description" class="form-control"></textarea>
+                            </div>
+        
+                            <div class="mb-3">
+                                <label id="labelFoodtype" class="form-label" style="display: none;">Food type</label>
+                                <select id="foodtype" style="display: none" name="foodtype" class="form-select me-3" required>
+                                    <% foodtypes.forEach(function(category, index) { %>
+                                        <option value=<%=category.id %>>
+                                            <%= category.name %>
+                                        </option>
+                                    <% }); %>
+                                </select>
+                            </div>
+        
+                            <div class="mb-3">
+                                <label class="form-label">Price($)</label>
+                                <input id="price" name="price" type="number" step="0.01" class="form-control" required>
+                            </div>
+        
+                            <div class="mb-3">
+                                <label id="labelAvailable" class="form-label" style="display: none;">Available</label>
+                                <select id="available" style="display: none" name="available" class="form-select me-3" required>
+                                    <option value=1>True</option>
+                                    <option value=0>False</option>
+                                </select>
+                            </div>
+        
+                            <div class="mb-3">
+                                <label class="form-label">Discount(%)</label>
+                                <input id="discount" name="discount" type="number" min="0" max="100" step="1"
+                                    class="form-control" value="0" required>
+                            </div>
+        
+                            <input id="menuId" type="hidden" name="menuId" />
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-    
     
     <%- include('partials/footer.ejs') %>
 

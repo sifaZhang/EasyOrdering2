@@ -9,57 +9,66 @@
     <%- include('partials/navbarSelection.ejs') %>
 
 
+    <div class="main-content">
         <!-- Title -->
-    <h3 class="text-center mb-4" style="margin-top: 20px;">All QR Codes</h3>
-
-    <div class="container-flex-wrap rounded" style="display: flex; flex-wrap: wrap; margin: 10px; margin-top: 0px;">
-        <% qrcodes.forEach(function(qrcode) { %>
-            <div class="table-responsive rounded overflow-hidden border"
-                style="width: 360px; margin-right: 10px; margin-bottom: 10px;">
-                <table class="table table-bordered table-striped mb-0">
-                    <tbody>
-                        <tr>
-                            <td class="section-title" style="text-align: center;">Table: <%= qrcode.tablenumber %>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div id="print-area-<%= qrcode.tablenumber %>" style="vertical-align: middle; text-align: center; position:relative;">
-                                    <p id="printTitle-<%= qrcode.tablenumber %>" style="text-align: center; font-size: 28px; font-weight: bold; display: none;">Scan to order</p>
-                                    <img src="<%= qrcode.picture %>" class="img-thumbnail zoomable"
-                                         style="display: block; margin: 0 auto; width: 300px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px;" />
-                                    <p id="printTable-<%= qrcode.tablenumber %>" style="text-align: center; font-size: 18px; font-weight: bold; display: none; margin-top: 10px;">Table: <%= qrcode.tablenumber %></p>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: center;">
-                                <button class="btn btn-sm btn-success generate-btn" onclick="printQRCode('<%= qrcode.tablenumber %>')">Print</button>
-
-                                <form action="/deleteQRCode" method="POST" style="display:inline-block;">
-                                    <input type="hidden" name="tableNumber" value="<%= qrcode.tablenumber %>">
-                                    <button class="btn btn-sm btn-danger generate-btn">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <% }); %>
-    </div>
+        <h3 class="text-center mb-4" style="margin-top: 20px;">All QR Codes</h3>
     
-    <div style="flex: auto; display: flex; justify-content: center;">
-        <div class="qr-generator-card" style="width: 360px; margin: 10px; margin-top: 0px;">
-            <h5 class="section-title">➕ Add A QR Code</h5>
-            <p class="input-hint">Please input a table number</p>
-            <form action="/addQRCode" method="POST">
-                <input name="tableNumber" type="number" class="form-control qr-input" placeholder="Table number">
-                <button class="btn btn-primary mt-3">Generate</button>
-            </form>
+        <div class="container-flex-wrap rounded" style="display: flex; flex-wrap: wrap; margin: 10px; margin-top: 0px;">
+            <% qrcodes.forEach(function(qrcode) { %>
+                <div class="table-responsive rounded overflow-hidden border"
+                    style="width: 360px; margin-right: 10px; margin-bottom: 10px;">
+                    <table class="table table-bordered table-striped mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="section-title" style="text-align: center;">Table: <%= qrcode.tablenumber %>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div id="print-area-<%= qrcode.tablenumber %>"
+                                        style="vertical-align: middle; text-align: center; position:relative;">
+                                        <p id="printTitle-<%= qrcode.tablenumber %>"
+                                            style="text-align: center; font-size: 28px; font-weight: bold; display: none;">
+                                            Scan to order</p>
+                                        <img src="<%= qrcode.picture %>" class="img-thumbnail zoomable"
+                                            style="display: block; margin: 0 auto; width: 300px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px;" />
+                                        <p id="printTable-<%= qrcode.tablenumber %>"
+                                            style="text-align: center; font-size: 18px; font-weight: bold; display: none; margin-top: 10px;">
+                                            Table: <%= qrcode.tablenumber %>
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: center;">
+                                    <button class="btn btn-sm btn-success generate-btn"
+                                        onclick="printQRCode('<%= qrcode.tablenumber %>')">Print</button>
+    
+                                    <form action="/deleteQRCode" method="POST" style="display:inline-block;">
+                                        <input type="hidden" name="tableNumber" value="<%= qrcode.tablenumber %>">
+                                        <button class="btn btn-sm btn-danger generate-btn">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <% }); %>
         </div>
-    </div>
+    
+        <div style="flex: auto; display: flex; justify-content: center;">
+            <div class="qr-generator-card" style="width: 360px; margin: 10px; margin-top: 0px;">
+                <h5 class="section-title">➕ Add A QR Code</h5>
+                <p class="input-hint">Please input a table number</p>
+                <form action="/addQRCode" method="POST">
+                    <input name="tableNumber" type="number" class="form-control qr-input" placeholder="Table number">
+                    <button class="btn btn-primary mt-3">Generate</button>
+                </form>
+            </div>
+        </div>
 
-    <%- include('partials/imageZoomHolder.ejs') %>
+        <%- include('partials/imageZoomHolder.ejs') %>
+    </div>
     
     
     <%- include('partials/footer.ejs') %>

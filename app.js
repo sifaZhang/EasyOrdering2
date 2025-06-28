@@ -103,8 +103,65 @@ app.get('/resetpwd', function (req, res) {
     res.render('resetpwd');
 });
 
-app.get('/ordersForHis', function (req, res) {
-    res.render('ordersForHis');
+app.get('/ordersForHistory', function (req, res) {
+    const startTime = new Date(req.query.fromDate);
+    const endTime = new Date(req.query.toDate);
+
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        return res.render('ordersForHistory', {
+                    orders: [],
+                    items: [],
+                    queried: false
+                });
+    }
+
+    conn.query('SELECT * FROM orders_info where ordertime >= ? and ordertime <= ? order by ordertime, tablenumber, id ASC', 
+        [startTime, endTime], function (error, results) {
+            if (error) {
+                return res.status(500).send('Database error (orders_info)', error);
+            }
+
+            results.forEach(element => {
+                element.ordertime = element.ordertime.toLocaleString('en-NZ', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+                element.finishtime = element.finishtime.toLocaleString('en-NZ', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+            });
+
+            const orderIds = results.map(order => order.id);
+            if (orderIds.length === 0) {
+                // No orders — skip second query
+                return res.render('ordersForHistory', {
+                    orders: [],
+                    items: [],
+                    queried: true
+                });
+            }
+            else {
+                conn.query('SELECT * FROM order_items_info where orderid in (?)',
+                    [orderIds], function (error2, results2) {
+                        if (error2) {
+                            return res.status(500).send('Database error (order_items)');
+                        }
+
+                        res.render('ordersForHistory', {
+                            orders: results,
+                            items: results2,
+                            queried: true
+                        });
+                    });
+            }
+    });
+});
+
+app.get('/filterByDate', function (req, res) {
+    const startTime = new Date(req.query.fromDate);
+    const endTime = new Date(req.query.toDate);
+
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        return res.status(500).send("Invalid date");
+    }
+    else {
+        res.redirect(`/ordersForHistory?fromDate=${req.query.fromDate}&toDate=${req.query.toDate}`);
+    }
 });
 
 app.get('/ordersForToday', function (req, res) {
@@ -207,9 +264,16 @@ app.get('/cart', function (req, res) {
             return res.status(500).send('Database error (order_items_info)');
         }
 
-        res.render('cart', {
-            success: true,
-            orderItems: results
+        conn.query('SELECT * FROM orders_info WHERE id = ?', [res.locals.s_orderId], function (error2, results2) {
+            if (error2) {
+                return res.status(500).send('Database error (orders_info)');
+            }
+
+            res.render('cart', {
+                success: true,
+                orderItems: results,
+                orderStatus: results2[0].statusname
+            });
         });
     });
 });
@@ -444,7 +508,7 @@ function addItem2Databse(req, res) {
     const orderTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 
     const sql = 'UPDATE orders SET status = ? where id = ?';
-    conn.query(sql, [res.locals.s_pending, orderId], (err, result) => {
+    conn.query(sql, [res.locals.s_pending, res.locals.s_orderId], (err, result) => {
         if (err) {
             console.error('Database update error:', err);
             return res.status(500).json({ success: false, message: 'Failed to update database.' });

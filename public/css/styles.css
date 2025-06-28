@@ -105,6 +105,12 @@ button.btn-warning:hover {
   border-color: rgb(247, 192, 14);
 }
 
+button.btn:disabled {
+  background-color: #ccc;
+  border-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
 
 .userinfo-div {
   margin-top: 10px; 
@@ -209,8 +215,22 @@ button.btn-warning:hover {
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Full viewport height */
+}
+
+html,body {
+  height: 100%; /* Make sure body and html take full height */
+  margin: 0;
+  padding: 0;
+}
+
+/* Main content should grow to fill available space */
+.main-content {
+  flex: 1;
   padding-top: 230px;
-  background-color:#FAF3E0;
+  background-color: #FAF3E0;
 }
 
 .footer {
