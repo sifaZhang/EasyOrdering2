@@ -44,7 +44,7 @@
                                 </td>
                                 <td style="width: 10%;"><label class="fw-bold">TotalAmount:</label></td>
                                 <td style="width: 20%;">
-                                    <%= order.total_amount %>
+                                    $<%= order.total_amount %>
                                 </td>
                             </tr>
                             <tr>
@@ -141,14 +141,14 @@
                             <tr>
                                 <td colspan="6">
                                     <div style="display: flex; justify-content: space-evenly;">
-                                        <% if (order.status===s_confirmed) { %>
+                                        <% if (order.status === s_confirmed) { %>
                                             <form action="/receiveOrder" method="POST">
                                                 <input name="orderId" type="hidden" value="<%= order.id %>">
                                                 <button class="btn btn-primary">Receive</button>
                                             </form>
                                         <% } %>
     
-                                        <% if (order.status===s_ready) { %>
+                                        <% if (order.status === s_ready) { %>
                                         <form action="/finishOrder" method="POST">
                                             <input name="orderId" type="hidden" value="<%= order.id %>">
                                             <button class="btn btn-primary">Finish</button>
@@ -159,6 +159,11 @@
                                         <form action="/cancelOrder" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?');">
                                             <input name="orderId" type="hidden" value="<%= order.id %>">
                                             <button class="btn btn-primary">Cancel</button>
+                                        </form>
+                                        
+                                        <form action="/deleteOrder" method="POST" onsubmit="return confirm('Are you sure you want to delete this order?');">
+                                            <input name="orderId" type="hidden" value="<%= order.id %>">
+                                            <button class="btn btn-primary">Delete</button>
                                         </form>
                                         <% } %>
                                     </div>

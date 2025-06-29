@@ -3,7 +3,8 @@ var conn = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: '',        
-    database: 'easyordering'       
+    database: 'easyordering',
+    dateStrings: true       
 });
 
 conn.connect(function(err) {

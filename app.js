@@ -76,6 +76,18 @@ app.use('/uploads', express.static(__dirname + '/public/images/uploads'));
 app.use('/QRCodes', express.static(__dirname + '/public/images/QRCodes'));
 
 
+//convert time zone
+function toLocalDatetimeString(utcInput) {
+  if (typeof utcInput === 'string') {
+    // 处理无 Z 的数据库字符串
+    if (!utcInput.includes('T')) {
+      utcInput = utcInput.replace(' ', 'T') + 'Z';
+    }
+  }
+  const date = new Date(utcInput);
+  return date.toLocaleString('sv-SE'); // 24小时制
+}
+
 app.get('/', function (req, res) {
     const topN = 3;
     conn.query('CALL SelectTopItemsByType(?)', [topN], function (error, results) {
@@ -122,8 +134,8 @@ app.get('/ordersForHistory', function (req, res) {
             }
 
             results.forEach(element => {
-                element.ordertime = element.ordertime.toLocaleString('en-NZ', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
-                element.finishtime = element.finishtime.toLocaleString('en-NZ', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+                element.ordertime = toLocalDatetimeString(element.ordertime);
+                element.finishtime = toLocalDatetimeString(element.finishtime);
             });
 
             const orderIds = results.map(order => order.id);
@@ -164,19 +176,34 @@ app.get('/filterByDate', function (req, res) {
     }
 });
 
+app.get('/api/pendingOrderCount', function (req, res) {
+    const now = new Date();
+    const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    conn.query('SELECT COUNT(*) as count FROM orders_info where ordertime >= ? and ordertime <= ? and status = ?',
+        [startTime, endTime, res.locals.s_confirmed], function (error, results) {
+            if (error) return res.status(500).json({ error: 'Database error' });
+            res.json({ count: results[0].count });
+        }
+    );
+});
+
 app.get('/ordersForToday', function (req, res) {
     const now = new Date();
     const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    conn.query('SELECT * FROM orders_info where ordertime >= ? and ordertime <= ? order by status, tablenumber, id ASC', 
+    conn.query('SELECT * FROM orders_info where ordertime >= ? and ordertime <= ? order by (status = 12) DESC, status, tablenumber, id ASC', 
         [startTime, endTime], function (error, results) {
             if (error) {
                 return res.status(500).send('Database error (orders_info)', error);
             }
 
             results.forEach(element => {
-                element.ordertime = element.ordertime.toLocaleString('en-NZ', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
-                element.finishtime = element.finishtime.toLocaleString('en-NZ', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+                //console.log('before:', element.ordertime, element.finishtime);
+                element.ordertime = toLocalDatetimeString(element.ordertime);
+                element.finishtime = toLocalDatetimeString(element.finishtime);
+                //console.log('after:', element.ordertime, element.finishtime);
             });
 
             const orderIds = results.map(order => order.id);
@@ -198,7 +225,7 @@ app.get('/ordersForToday', function (req, res) {
                             orders: results,
                             items: results2
                         });
-                    });
+                });
             }
     });
 });
@@ -269,11 +296,20 @@ app.get('/cart', function (req, res) {
                 return res.status(500).send('Database error (orders_info)');
             }
 
-            res.render('cart', {
-                success: true,
-                orderItems: results,
-                orderStatus: results2[0].statusname
-            });
+            if (results2.length > 0) {
+                res.render('cart', {
+                    success: true,
+                    orderItems: results,
+                    orderStatus: results2[0].statusname
+                });
+            }
+            else {
+                res.render('cart', {
+                    success: true,
+                    orderItems: [],
+                    orderStatus: ''
+                });
+            }
         });
     });
 });
@@ -324,6 +360,8 @@ app.get('/overviewMenu', renderOverviewMenu);
 // GET /table/8
 app.get('/table/:table', (req, res) => {
     const tableNumber = parseInt(req.params.table);
+    const now = new Date();
+    const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     if (isNaN(tableNumber)) {
         return res.status(400).json({ error: 'Invalid tableNumber' });
@@ -363,8 +401,8 @@ app.get('/table/:table', (req, res) => {
             });
 
             //check whether the customer has existed
-            const query = 'SELECT * FROM orders WHERE tablenumber = ? and status < ?';
-            conn.query(query, [tableNumber, res.locals.s_completed], function (err, results) {
+            const query = 'SELECT * FROM orders WHERE tablenumber = ? and status < ? and ordertime >= ?';
+            conn.query(query, [tableNumber, res.locals.s_completed, startTime], function (err, results) {
                 if (err) {
                     console.error(err);
                     return res.status(500).send('Database error');
@@ -469,15 +507,25 @@ app.get('/updateAccount', function (req, res) {
     }
 });
 
+function resetCurrentTableInfo(req,res) {
+    res.locals.s_orderId = req.session.orderId = 0;
+    res.locals.s_tableNumber = req.session.tableNumber = 0;
+    res.locals.s_totalNumber = req.session.totalNumber = 0;
+    res.locals.s_totalMoney = req.session.totalMoney = 0;
+
+    console.log('Reset cur table info');
+}
+
 //This will be used to return to home page after the members logout.
 app.get('/logout',(req,res) => {
 	console.log("Log out")
-    req.session.destroy();
+    
     res.locals.s_username = null;
     res.locals.s_role = null;
-    res.locals.s_totalNumber = 0;
-    res.locals.s_totalMoney = 0;
-    res.locals.s_tableNumber = 0;
+
+    resetCurrentTableInfo(req, res);
+
+    req.session.destroy();
     
 	res.redirect('/');
 });
@@ -489,13 +537,21 @@ function sendStatistics(req, res) {
                 return res.status(500).send('Failed to calculate statistics.');
             }
 
-            res.locals.s_totalMoney = req.session.totalMoney = results[0].total_price || 0;
-            res.locals.s_tableNumber = req.session.totalNumber = results[0].total_number || 0;
-            res.json({
-                success: true,
-                totalMoney: res.locals.s_totalMoney,
-                totalNumber: res.locals.s_totalNumber
-            });
+            if (results.length > 0) {
+                res.locals.s_totalMoney = req.session.totalMoney = results[0].total_price || 0;
+                res.locals.s_totalNumber = req.session.totalNumber = results[0].total_number || 0;
+                res.json({
+                    success: true,
+                    totalMoney: res.locals.s_totalMoney,
+                    totalNumber: res.locals.s_totalNumber
+                });
+            } else {
+                 res.json({
+                    success: false,
+                    totalMoney: 0,
+                    totalNumber: 0
+                });
+            }
         });
 }
 
@@ -560,15 +616,15 @@ app.post('/pay', function (req, res) {
             console.error('Database update error:', err);
             return res.status(500).json({ success: false, message: 'Failed to update database.' });
         } else {
-            res.locals.s_totalNumber = req.session.totalNumber = 0;
-            res.locals.s_totalMoney = req.session.totalMoney = 0;
+            resetCurrentTableInfo(req, res);
+
             res.redirect('/payment?success=1');
         }
     });
 });
 
 app.post('/placeOrder', function (req, res) {
-    const orderId = req.body.orderId;
+    const orderId = parseInt(req.body.orderId);
 
     if (isNaN(orderId)) {
         return res.status(500).json({success: false, message: 'Invalid orderId'});
@@ -586,7 +642,7 @@ app.post('/placeOrder', function (req, res) {
 });
 
 app.post('/receiveOrder', function (req, res) {
-    const orderId = req.body.orderId;
+    const orderId = parseInt(req.body.orderId);
 
     if (isNaN(orderId)) {
         return res.status(500).json({success: false, message: 'Invalid orderId'});
@@ -604,36 +660,69 @@ app.post('/receiveOrder', function (req, res) {
 });
 
 app.post('/finishOrder', function (req, res) {
-    const orderId = req.body.orderId;
+    const orderId = parseInt(req.body.orderId);
+    const finishtime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 
     if (isNaN(orderId)) {
         return res.status(500).json({success: false, message: 'Invalid orderId'});
     }
 
-    const sql = 'UPDATE orders SET status = ? where id = ?';
-    conn.query(sql, [res.locals.s_completed, orderId], (err, result) => {
+    const sql = 'UPDATE orders SET status = ?, finishtime = ? where id = ?';
+    conn.query(sql, [res.locals.s_completed, finishtime, orderId], (err, result) => {
         if (err) {
             console.error('Database update error:', err);
             return res.status(500).json({ success: false, message: 'Failed to update database.' });
         } else {
+
+            if( res.locals.s_orderId === orderId ) {
+                resetCurrentTableInfo(req, res);
+            }
+
             res.redirect('/ordersForToday');
         }
     });
 });
 
 app.post('/cancelOrder', function (req, res) {
-    const orderId = req.body.orderId;
+    const orderId = parseInt(req.body.orderId);
+    const finishtime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 
     if (isNaN(orderId)) {
         return res.status(500).json({success: false, message: 'Invalid orderId'});
     }
 
-    const sql = 'UPDATE orders SET status = ? where id = ?';
-    conn.query(sql, [res.locals.s_cancelled, orderId], (err, result) => {
+    const sql = 'UPDATE orders SET status = ?, finishtime = ? where id = ?';
+    conn.query(sql, [res.locals.s_cancelled, finishtime, orderId], (err, result) => {
         if (err) {
             console.error('Database update error:', err);
             return res.status(500).json({ success: false, message: 'Failed to update database.' });
         } else {
+            if (res.locals.s_orderId === orderId) {
+                resetCurrentTableInfo(req, res);
+            }
+
+            res.redirect('/ordersForToday');
+        }
+    });
+});
+
+
+app.post('/deleteOrder', function (req, res) {
+    const orderId = parseInt(req.body.orderId);
+
+    if (isNaN(orderId)) {
+        return res.status(500).json({success: false, message: 'Invalid orderId'});
+    }
+
+    const sql = 'DELETE from orders where id = ?';
+    conn.query(sql, [orderId], (err, result) => {
+        if (err) {
+            console.error('Database delete error:', err);
+            return res.status(500).json({ success: false, message: 'Failed to delete database.' });
+        } else {
+            if (res.locals.s_orderId === orderId) {
+                resetCurrentTableInfo(req, res);
+            }
             res.redirect('/ordersForToday');
         }
     });
@@ -644,6 +733,8 @@ app.post('/cancelOrder', function (req, res) {
 app.post('/addItems', function (req, res) {
     const orderTime = new Date().toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
     const tableNumber = parseInt(req.body.tableNumber);
+
+    console.log('addItems:', orderTime);
 
     //if tableNumber is not null, this order is made by recepitonist
     if (!isNaN(tableNumber)) {
@@ -695,7 +786,7 @@ app.post('/ReadyItem', function (req, res) {
                 });
             }
 
-            const newStatus = caculateStatus(results);
+            const newStatus = caculateStatus(results, res);
             conn.query('update orders SET status = ? WHERE id = ?', [newStatus, orderId], function (err, result) {
                 if (err) {
                     console.error(err);
@@ -721,7 +812,7 @@ app.post('/deleteItemByR', function (req, res) {
                 message: 'Invalid itemId or orderId'});
     }
 
-    conn.query('delete order_items  WHERE id = ?', [itemId], function (err, result) {
+    conn.query('delete from order_items WHERE id = ?', [itemId], function (err, result) {
         if (err) {
             console.error(err);
             return res.status(500).json({
@@ -737,7 +828,7 @@ app.post('/deleteItemByR', function (req, res) {
                 });
             }
 
-            const newStatus = caculateStatus(results);
+            const newStatus = caculateStatus(results, res);
             conn.query('update orders SET status = ? WHERE id = ?', [newStatus, orderId], function (err, result) {
                 if (err) {
                     console.error(err);
@@ -753,7 +844,7 @@ app.post('/deleteItemByR', function (req, res) {
     });
 });
 
-function caculateStatus(results) {
+function caculateStatus(results, res) {
     let newStatus = res.locals.s_pending;
     let pending = 0;
     let confirmed = 0;
@@ -761,7 +852,7 @@ function caculateStatus(results) {
     let ready = 0;
     let completed = 0;
     let cancelled = 0;
-    array.forEach(element => {
+    results.forEach(element => {
         switch (element.status) {
             case res.locals.s_pending:
                 pending++;
@@ -826,7 +917,7 @@ app.post('/deleteItem', function (req, res) {
                 });
             }
 
-            const newStatus = caculateStatus(results);
+            const newStatus = caculateStatus(results, res);
             conn.query('update orders SET status = ? WHERE id = ?', [newStatus, res.locals.s_orderId], function (err, result) {
                 if (err) {
                     console.error(err);
@@ -846,7 +937,8 @@ app.post('/deleteItem', function (req, res) {
                             res.locals.s_totalNumber = req.session.totalNumber = statisticsResults[0].total_number || 0;
                             res.json({
                                 success: true,
-                                orderItems: results
+                                totalMoney: res.locals.s_totalMoney,
+                                totalNumber: res.locals.s_totalNumber 
                             });
                         }
                 });
